@@ -1,5 +1,5 @@
 # Autocoder - Build Extension Pipeline
-# This pipeline builds and packages the Azure DevOps extension
+# This pipeline builds and packages the Azure DevOps pipeline task extension
 
 trigger:
   branches:
@@ -8,7 +8,6 @@ trigger:
       - develop
   paths:
     include:
-      - src/extension/**
       - src/task/**
 
 pool:
@@ -65,44 +64,6 @@ stages:
             artifact: 'task'
             displayName: 'Publish Task Artifact'
 
-      - job: BuildExtension
-        displayName: 'Build Boards Extension'
-        steps:
-          - task: NodeTool@0
-            displayName: 'Install Node.js'
-            inputs:
-              versionSpec: '$(nodeVersion)'
-
-          - script: |
-              cd src/extension
-              npm ci
-            displayName: 'Install Extension Dependencies'
-
-          - script: |
-              cd src/extension
-              npm run lint
-            displayName: 'Lint Extension Code'
-            continueOnError: true
-
-          - script: |
-              cd src/extension
-              npm run build
-            displayName: 'Build Extension'
-
-          - task: CopyFiles@2
-            displayName: 'Copy Extension Files'
-            inputs:
-              SourceFolder: 'src/extension'
-              Contents: |
-                dist/**
-                images/**
-                vss-extension.json
-              TargetFolder: '$(Build.ArtifactStagingDirectory)/extension'
-
-          - publish: '$(Build.ArtifactStagingDirectory)/extension'
-            artifact: 'extension'
-            displayName: 'Publish Extension Artifact'
-
   - stage: Package
     displayName: 'Package Extension'
     dependsOn: Build
@@ -124,19 +85,15 @@ stages:
             artifact: 'task'
             displayName: 'Download Task Artifact'
 
-          - download: current
-            artifact: 'extension'
-            displayName: 'Download Extension Artifact'
-
           - script: |
-              cd $(Pipeline.Workspace)/extension
+              cd $(Pipeline.Workspace)/task
               tfx extension create --manifest-globs vss-extension.json
             displayName: 'Create Extension Package'
 
           - task: CopyFiles@2
             displayName: 'Copy VSIX Files'
             inputs:
-              SourceFolder: '$(Pipeline.Workspace)/extension'
+              SourceFolder: '$(Pipeline.Workspace)/task'
               Contents: '**/*.vsix'
               TargetFolder: '$(Build.ArtifactStagingDirectory)'
 

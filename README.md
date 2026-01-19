@@ -1,14 +1,15 @@
-# Autocoder - Azure DevOps AI Agent Extension
+# Autocoder - Azure DevOps AI Pipeline Task
 
-Autocoder is an Azure DevOps extension that leverages AI coding agents (GitHub Copilot or Claude Code) to automatically generate code solutions for work items. The extension integrates with Azure Boards and Azure Pipelines to provide a seamless workflow where developers can trigger AI-assisted code generation directly from work items, with the results delivered as pull requests.
+Autocoder is an Azure DevOps pipeline task extension that leverages AI coding agents (GitHub Copilot or Claude Code) to automatically generate code solutions. The task can use work item context or custom prompts to generate code, with the results delivered as pull requests.
+
+> **Note:** This extension focuses on the pipeline task. A future companion extension may provide Azure Boards UI integration.
 
 ## Features
 
 - 🤖 **AI-Powered Code Generation**: Use GitHub Copilot or Claude Code to automatically generate code
-- 📋 **Work Item Integration**: Generate code based on Azure Boards work item descriptions
+- 📋 **Work Item Context**: Optionally fetch context from Azure Boards work item descriptions
 - 🔄 **Automated PR Creation**: Automatically create pull requests with generated changes
 - 🎯 **Pipeline Task**: Easy-to-use Azure Pipelines task for CI/CD integration
-- 🖥️ **Work Item UI**: Trigger code generation directly from work item forms
 
 ## Project Structure
 
@@ -17,12 +18,6 @@ ado-autocoder/
 ├── docs/
 │   └── DESIGN.md              # Design document
 ├── src/
-│   ├── extension/             # Azure Boards Extension
-│   │   ├── src/
-│   │   │   ├── dialog/        # Trigger modal dialog
-│   │   │   ├── services/      # Azure DevOps API services
-│   │   │   └── models/        # TypeScript interfaces
-│   │   └── vss-extension.json # Extension manifest
 │   └── task/                  # Pipeline Task
 │       ├── AutocoderV1/
 │       │   ├── src/           # Task source code
@@ -46,7 +41,7 @@ ado-autocoder/
 
 ## Installation
 
-### 1. Build the Pipeline Task
+### Build the Pipeline Task
 
 ```bash
 cd src/task/AutocoderV1
@@ -54,21 +49,10 @@ npm install
 npm run build
 ```
 
-### 2. Build the Extension
-
-```bash
-cd src/extension
-npm install
-npm run build
-```
-
-### 3. Package the Extension
+### Package the Extension
 
 ```bash
 cd src/task
-npx tfx extension create --manifest-globs vss-extension.json
-
-cd src/extension
 npx tfx extension create --manifest-globs vss-extension.json
 ```
 
@@ -104,15 +88,6 @@ Add the Autocoder task to your Azure Pipeline:
 | `targetBranch` | No | `main` | Target branch for PR |
 | `sourceBranchPrefix` | No | `autocoder/` | Source branch prefix |
 | `additionalContext` | No | - | Additional context |
-
-### Work Item Integration
-
-1. Open any work item in Azure Boards
-2. Click the "Autocoder" button in the toolbar
-3. Select repository, branch, and pipeline
-4. Choose AI agent (GitHub Copilot or Claude)
-5. Add any additional instructions
-6. Click "Start Autocoder"
 
 ## Environment Variables
 
