@@ -45,8 +45,8 @@ export class AgentExecutor {
         containerImage: string,
         options: AgentExecutorOptions
     ): Promise<void> {
-        // Check if we should use Docker or run directly
-        const useContainer = tl.getBoolInput('useContainer', false) ?? this.isContainerAvailable();
+        // Check if Docker is available, otherwise run directly
+        const useContainer = this.isContainerAvailable();
 
         if (useContainer) {
             await this.executeWithDocker(containerImage, options);

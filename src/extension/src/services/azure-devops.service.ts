@@ -1,4 +1,5 @@
 import * as SDK from 'azure-devops-extension-sdk';
+import { CommonServiceIds, IProjectPageService } from 'azure-devops-extension-api/Common';
 import { Repository, Branch, Pipeline, WorkItem } from '../models';
 
 export class AzureDevOpsService {
@@ -12,7 +13,7 @@ export class AzureDevOpsService {
         const context = SDK.getHost();
         this.organizationUrl = `https://dev.azure.com/${context.name}`;
         
-        const projectService = await SDK.getService<IProjectPageService>('ms.vss-tfs-web.tfs-page-data-service');
+        const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         const project = await projectService.getProject();
         if (project) {
             this.projectId = project.id;
@@ -101,9 +102,4 @@ export class AzureDevOpsService {
             state: data.fields['System.State']
         };
     }
-}
-
-// Interface for project page service
-interface IProjectPageService {
-    getProject(): Promise<{ id: string; name: string } | undefined>;
 }

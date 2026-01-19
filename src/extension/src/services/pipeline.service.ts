@@ -1,4 +1,5 @@
 import * as SDK from 'azure-devops-extension-sdk';
+import { CommonServiceIds, IProjectPageService } from 'azure-devops-extension-api/Common';
 import { AutocoderConfig, PipelineRunRequest } from '../models';
 
 export class PipelineService {
@@ -12,7 +13,7 @@ export class PipelineService {
         const context = SDK.getHost();
         this.organizationUrl = `https://dev.azure.com/${context.name}`;
 
-        const projectService = await SDK.getService<IProjectPageService>('ms.vss-tfs-web.tfs-page-data-service');
+        const projectService = await SDK.getService<IProjectPageService>(CommonServiceIds.ProjectPageService);
         const project = await projectService.getProject();
         if (project) {
             this.projectId = project.id;
@@ -61,9 +62,4 @@ export class PipelineService {
         const data = await response.json();
         return data._links?.web?.href || `${this.organizationUrl}/${this.projectId}/_build/results?buildId=${data.id}`;
     }
-}
-
-// Interface for project page service
-interface IProjectPageService {
-    getProject(): Promise<{ id: string; name: string } | undefined>;
 }

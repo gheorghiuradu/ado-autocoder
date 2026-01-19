@@ -1,5 +1,6 @@
 import * as SDK from 'azure-devops-extension-sdk';
 import { IWorkItemFormService, WorkItemTrackingServiceIds } from 'azure-devops-extension-api/WorkItemTracking';
+import { CommonServiceIds, IHostDialogService, IHostDialogOptions, IExternalDialog } from 'azure-devops-extension-api/Common';
 
 SDK.init();
 
@@ -11,8 +12,8 @@ SDK.ready().then(async () => {
     // Get the current work item ID
     const workItemId = await workItemFormService.getId();
 
-    // Open the Autocoder dialog
-    const dialogService = await SDK.getService<IHostDialogService>('ms.vss-features.host-dialog-service');
+    // Open the Autocoder dialog using the standard host dialog service
+    const dialogService = await SDK.getService<IHostDialogService>(CommonServiceIds.HostDialogService);
 
     const extensionContext = SDK.getExtensionContext();
     const dialogContributionId = `${extensionContext.publisherId}.${extensionContext.extensionId}.autocoder-dialog`;
@@ -20,12 +21,10 @@ SDK.ready().then(async () => {
     const dialogOptions: IHostDialogOptions = {
         title: '🤖 Autocoder - Generate Code',
         width: 600,
-        height: 500,
-        modal: true,
-        buttons: null
+        height: 500
     };
 
-    await dialogService.openDialog(
+    await dialogService.openCustomDialog(
         dialogContributionId,
         dialogOptions,
         {
@@ -33,25 +32,3 @@ SDK.ready().then(async () => {
         }
     );
 });
-
-// Interfaces for dialog service
-interface IHostDialogService {
-    openDialog(
-        contributionId: string,
-        options: IHostDialogOptions,
-        contributionConfig?: object
-    ): Promise<IExternalDialog>;
-}
-
-interface IHostDialogOptions {
-    title: string;
-    width: number;
-    height: number;
-    modal: boolean;
-    buttons: object | null;
-}
-
-interface IExternalDialog {
-    getContributionInstance<T>(): Promise<T>;
-    close(): void;
-}
