@@ -1,0 +1,66 @@
+{
+  "manifestVersion": 1,
+  "id": "autocoder",
+  "name": "Autocoder",
+  "version": "1.0.0",
+  "publisher": "autocoder",
+  "description": "AI-powered code generation for Azure DevOps",
+  "categories": ["Azure Boards", "Azure Pipelines"],
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "icons": {
+    "default": "images/autocoder-icon.png"
+  },
+  "contributions": [
+    {
+      "id": "autocoder-work-item-menu",
+      "type": "ms.vss-web.action",
+      "targets": [
+        "ms.vss-work-web.work-item-context-menu"
+      ],
+      "properties": {
+        "text": "Autocoder",
+        "title": "Generate code with AI",
+        "icon": "images/autocoder-icon.png",
+        "group": "actions",
+        "uri": "dist/work-item-action.html"
+      }
+    },
+    {
+      "id": "autocoder-work-item-form-group",
+      "type": "ms.vss-work-web.work-item-form-group",
+      "targets": [
+        "ms.vss-work-web.work-item-form"
+      ],
+      "properties": {
+        "name": "Autocoder",
+        "uri": "dist/work-item-form-group.html"
+      }
+    },
+    {
+      "id": "autocoder-dialog",
+      "type": "ms.vss-web.external-content",
+      "properties": {
+        "uri": "dist/dialog.html"
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "dist",
+      "addressable": true
+    },
+    {
+      "path": "images",
+      "addressable": true
+    }
+  ],
+  "scopes": [
+    "vso.build_execute",
+    "vso.code_write",
+    "vso.work_write"
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Autocoder",
+  "friendlyName": "Autocoder - AI Code Generation",
+  "description": "Execute AI coding agents to generate code from work items or prompts",
+  "category": "Utility",
+  "visibility": ["Build", "Release"],
+  "author": "Autocoder Team",
+  "version": {
+    "Major": 1,
+    "Minor": 0,
+    "Patch": 0
+  },
+  "instanceNameFormat": "Autocoder: $(agentType)",
+  "inputs": [
+    {
+      "name": "workItemId",
+      "type": "string",
+      "label": "Work Item ID",
+      "required": false,
+      "helpMarkDown": "Azure Boards work item ID to use as context"
+    },
+    {
+      "name": "userPrompt",
+      "type": "multiLine",
+      "label": "User Prompt",
+      "required": false,
+      "helpMarkDown": "Custom instructions for the AI agent"
+    },
+    {
+      "name": "agentType",
+      "type": "pickList",
+      "label": "AI Agent",
+      "required": true,
+      "defaultValue": "copilot",
+      "options": {
+        "copilot": "GitHub Copilot",
+        "claude": "Claude Code"
+      },
+      "helpMarkDown": "Select the AI agent to use for code generation"
+    },
+    {
+      "name": "containerImage",
+      "type": "string",
+      "label": "Container Image",
+      "required": false,
+      "helpMarkDown": "Custom container image override. If not specified, the default image for the selected agent will be used."
+    },
+    {
+      "name": "systemPrompt",
+      "type": "multiLine",
+      "label": "System Prompt Override",
+      "required": false,
+      "helpMarkDown": "Override the default system prompt"
+    },
+    {
+      "name": "createPullRequest",
+      "type": "boolean",
+      "label": "Create Pull Request",
+      "defaultValue": "true",
+      "required": false,
+      "helpMarkDown": "Automatically create a pull request with the generated changes"
+    },
+    {
+      "name": "targetBranch",
+      "type": "string",
+      "label": "Target Branch",
+      "defaultValue": "main",
+      "required": false,
+      "helpMarkDown": "Target branch for the pull request"
+    },
+    {
+      "name": "sourceBranchPrefix",
+      "type": "string",
+      "label": "Source Branch Prefix",
+      "defaultValue": "autocoder/",
+      "required": false,
+      "helpMarkDown": "Prefix for the generated source branch"
+    },
+    {
+      "name": "additionalContext",
+      "type": "multiLine",
+      "label": "Additional Context",
+      "required": false,
+      "helpMarkDown": "Additional context files or instructions for the AI agent"
+    }
+  ],
+  "execution": {
+    "Node16": {
+      "target": "index.js"
+    }
+  }
+}

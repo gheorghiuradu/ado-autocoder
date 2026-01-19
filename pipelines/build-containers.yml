@@ -1,0 +1,86 @@
+# Autocoder - Build Container Images Pipeline
+# This pipeline builds and pushes the container images
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - containers/**
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  containerRegistry: 'autocoder-registry'
+  imageRepository: 'autocoder'
+
+stages:
+  - stage: Build
+    displayName: 'Build Container Images'
+    jobs:
+      - job: BuildCopilotImage
+        displayName: 'Build Copilot Container'
+        steps:
+          - task: Docker@2
+            displayName: 'Build Copilot Image'
+            inputs:
+              command: 'build'
+              containerRegistry: '$(containerRegistry)'
+              repository: '$(imageRepository)/ubuntu-copilot'
+              dockerfile: 'containers/copilot/Dockerfile'
+              buildContext: 'containers/copilot'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Push Copilot Image'
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+            inputs:
+              command: 'push'
+              containerRegistry: '$(containerRegistry)'
+              repository: '$(imageRepository)/ubuntu-copilot'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+      - job: BuildClaudeImage
+        displayName: 'Build Claude Container'
+        steps:
+          - task: Docker@2
+            displayName: 'Build Claude Image'
+            inputs:
+              command: 'build'
+              containerRegistry: '$(containerRegistry)'
+              repository: '$(imageRepository)/ubuntu-claude'
+              dockerfile: 'containers/claude/Dockerfile'
+              buildContext: 'containers/claude'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Push Claude Image'
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+            inputs:
+              command: 'push'
+              containerRegistry: '$(containerRegistry)'
+              repository: '$(imageRepository)/ubuntu-claude'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+  - stage: SecurityScan
+    displayName: 'Security Scanning'
+    dependsOn: Build
+    jobs:
+      - job: ScanImages
+        displayName: 'Scan Container Images'
+        steps:
+          - script: |
+              echo "Running container security scan..."
+              # Add security scanning commands here (e.g., Trivy, Snyk)
+            displayName: 'Run Security Scan'
+            continueOnError: true

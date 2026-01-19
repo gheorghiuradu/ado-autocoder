@@ -1,0 +1,145 @@
+# Autocoder - Build Extension Pipeline
+# This pipeline builds and packages the Azure DevOps extension
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - src/extension/**
+      - src/task/**
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '20.x'
+
+stages:
+  - stage: Build
+    displayName: 'Build Extension'
+    jobs:
+      - job: BuildTask
+        displayName: 'Build Pipeline Task'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: '$(nodeVersion)'
+
+          - script: |
+              cd src/task/AutocoderV1
+              npm ci
+            displayName: 'Install Task Dependencies'
+
+          - script: |
+              cd src/task/AutocoderV1
+              npm run lint
+            displayName: 'Lint Task Code'
+            continueOnError: true
+
+          - script: |
+              cd src/task/AutocoderV1
+              npm run build
+            displayName: 'Build Task'
+
+          - script: |
+              cd src/task/AutocoderV1
+              npm test
+            displayName: 'Run Task Tests'
+
+          - task: CopyFiles@2
+            displayName: 'Copy Task Files'
+            inputs:
+              SourceFolder: 'src/task'
+              Contents: |
+                **/*.js
+                **/*.json
+                !**/node_modules/**
+                !**/tests/**
+              TargetFolder: '$(Build.ArtifactStagingDirectory)/task'
+
+          - publish: '$(Build.ArtifactStagingDirectory)/task'
+            artifact: 'task'
+            displayName: 'Publish Task Artifact'
+
+      - job: BuildExtension
+        displayName: 'Build Boards Extension'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: '$(nodeVersion)'
+
+          - script: |
+              cd src/extension
+              npm ci
+            displayName: 'Install Extension Dependencies'
+
+          - script: |
+              cd src/extension
+              npm run lint
+            displayName: 'Lint Extension Code'
+            continueOnError: true
+
+          - script: |
+              cd src/extension
+              npm run build
+            displayName: 'Build Extension'
+
+          - task: CopyFiles@2
+            displayName: 'Copy Extension Files'
+            inputs:
+              SourceFolder: 'src/extension'
+              Contents: |
+                dist/**
+                images/**
+                vss-extension.json
+              TargetFolder: '$(Build.ArtifactStagingDirectory)/extension'
+
+          - publish: '$(Build.ArtifactStagingDirectory)/extension'
+            artifact: 'extension'
+            displayName: 'Publish Extension Artifact'
+
+  - stage: Package
+    displayName: 'Package Extension'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Package
+        displayName: 'Package VSIX'
+        steps:
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: '$(nodeVersion)'
+
+          - script: |
+              npm install -g tfx-cli
+            displayName: 'Install TFX CLI'
+
+          - download: current
+            artifact: 'task'
+            displayName: 'Download Task Artifact'
+
+          - download: current
+            artifact: 'extension'
+            displayName: 'Download Extension Artifact'
+
+          - script: |
+              cd $(Pipeline.Workspace)/extension
+              tfx extension create --manifest-globs vss-extension.json
+            displayName: 'Create Extension Package'
+
+          - task: CopyFiles@2
+            displayName: 'Copy VSIX Files'
+            inputs:
+              SourceFolder: '$(Pipeline.Workspace)/extension'
+              Contents: '**/*.vsix'
+              TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+          - publish: '$(Build.ArtifactStagingDirectory)'
+            artifact: 'vsix'
+            displayName: 'Publish VSIX Artifact'
