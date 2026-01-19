@@ -10,7 +10,9 @@
 
 ## 1. Executive Summary
 
-Autocoder is an Azure DevOps extension that leverages AI coding agents (GitHub Copilot or Claude Code) to automatically generate code solutions for work items. The extension integrates with Azure Boards and Azure Pipelines to provide a seamless workflow where developers can trigger AI-assisted code generation directly from work items, with the results delivered as pull requests.
+Autocoder is an Azure DevOps extension that provides a custom Azure Pipelines task for executing AI coding agents (GitHub Copilot or Claude Code) to automatically generate code solutions. The task runs AI agents in containerized environments to generate code based on work item descriptions or custom prompts, with the results delivered as pull requests.
+
+> **Note:** This extension focuses on the pipeline task component. A future companion extension will provide Azure Boards integration with a work item button and trigger modal for a more seamless UI experience.
 
 ---
 
@@ -19,11 +21,11 @@ Autocoder is an Azure DevOps extension that leverages AI coding agents (GitHub C
 ### Primary Goals
 - Automate simple coding tasks by leveraging AI agents
 - Reduce developer toil for repetitive or straightforward implementations
-- Integrate AI coding capabilities natively into Azure DevOps workflows
+- Provide a reusable pipeline task for AI-powered code generation
 
 ### Success Criteria
-- Developers can trigger AI code generation from any work item
-- Pipeline tasks successfully execute AI agents in containerized environments
+- Pipeline task successfully executes AI agents in containerized environments
+- Task can fetch work item context from Azure Boards when work item ID is provided
 - Generated code is automatically submitted as pull requests for review
 
 ---
@@ -38,25 +40,27 @@ Autocoder is an Azure DevOps extension that leverages AI coding agents (GitHub C
 │  ┌──────────────────────┐         ┌──────────────────────────────────┐  │
 │  │    Azure Boards      │         │        Azure Pipelines           │  │
 │  │                      │         │                                  │  │
-│  │  ┌────────────────┐  │  HTTP   │  ┌────────────────────────────┐  │  │
-│  │  │  Work Item     │  │ ──────► │  │   Autocoder Pipeline Task  │  │  │
-│  │  │  + Autocoder   │  │ Trigger │  │                            │  │  │
-│  │  │    Button      │  │         │  │  ┌──────────────────────┐  │  │  │
-│  │  └────────────────┘  │         │  │  │  Container Options   │  │  │  │
-│  │         │            │         │  │  │                      │  │  │  │
-│  │         ▼            │         │  │  │  • Ubuntu + Copilot  │  │  │  │
-│  │  ┌────────────────┐  │         │  │  │  • Ubuntu + Claude   │  │  │  │
-│  │  │ Trigger Modal  │  │         │  │  └──────────────────────┘  │  │  │
-│  │  │ • Branch       │  │         │  │             │              │  │  │
-│  │  │ • Pipeline     │  │         │  │             ▼              │  │  │
+│  │  ┌────────────────┐  │  REST   │  ┌────────────────────────────┐  │  │
+│  │  │  Work Item     │◄─┼─────────┼──│   Autocoder Pipeline Task  │  │  │
+│  │  │  (context)     │  │   API   │  │                            │  │  │
 │  │  └────────────────┘  │         │  │  ┌──────────────────────┐  │  │  │
-│  │                      │         │  │  │  Create Pull Request │  │  │  │
-│  └──────────────────────┘         │  │  └──────────────────────┘  │  │  │
+│  │                      │         │  │  │  Container Options   │  │  │  │
+│  └──────────────────────┘         │  │  │                      │  │  │  │
+│                                   │  │  │  • Ubuntu + Copilot  │  │  │  │
+│                                   │  │  │  • Ubuntu + Claude   │  │  │  │
+│                                   │  │  └──────────────────────┘  │  │  │
+│                                   │  │             │              │  │  │
+│                                   │  │             ▼              │  │  │
+│                                   │  │  ┌──────────────────────┐  │  │  │
+│                                   │  │  │  Create Pull Request │  │  │  │
+│                                   │  │  └──────────────────────┘  │  │  │
 │                                   │  └────────────────────────────────┘  │
 │                                   └──────────────────────────────────────┘
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+> **Future Enhancement:** A companion Azure Boards extension will add a work item toolbar button and modal dialog for triggering the pipeline directly from work items.
 
 ---
 
@@ -97,8 +101,8 @@ A custom Azure Pipelines task that executes AI coding agents within containerize
 ```
 autocoder/ubuntu-copilot:latest
 ```
-- Base: Ubuntu 22.04 LTS
-- Includes: Node.js, Python, .NET SDK, Git, GitHub CLI, Copilot CLI
+- Base: Ubuntu 24.04 LTS
+- Includes: Node.js, Python, .NET SDK, Git, Copilot CLI
 - Entry point: Copilot agent wrapper script
 
 **Claude Code Container:**
@@ -268,179 +272,6 @@ Additional Instructions:
 
 ---
 
-### 4.2 Azure Boards Extension: Work Item Button & Modal
-
-#### 4.2.1 Overview
-
-A contribution to Azure Boards that adds an "Autocoder" button to work item forms. When clicked, it opens a modal dialog allowing users to configure and trigger an AI-powered pipeline run.
-
-#### 4.2.2 UI Components
-
-**Work Item Toolbar Button:**
-- Location: Work item form toolbar (menu contribution point)
-- Icon: Robot/AI icon
-- Label: "Autocoder"
-- Visibility: All work item types (configurable)
-
-**Trigger Modal Dialog:**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  🤖 Autocoder - Generate Code                          [X]  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Work Item: #1234 - Implement user authentication           │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Repository *                                         │   │
-│  │ ┌─────────────────────────────────────────────────┐ │   │
-│  │ │ my-project/my-repo                           ▼ │ │   │
-│  │ └─────────────────────────────────────────────────┘ │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Source Branch *                                      │   │
-│  │ ┌─────────────────────────────────────────────────┐ │   │
-│  │ │ main                                         ▼ │ │   │
-│  │ └─────────────────────────────────────────────────┘ │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Pipeline *                                           │   │
-│  │ ┌─────────────────────────────────────────────────┐ │   │
-│  │ │ autocoder-pipeline                           ▼ │ │   │
-│  │ └─────────────────────────────────────────────────┘ │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ AI Agent *                                           │   │
-│  │ ○ GitHub Copilot    ● Claude Code                    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ Additional Instructions (optional)                   │   │
-│  │ ┌─────────────────────────────────────────────────┐ │   │
-│  │ │                                                 │ │   │
-│  │ │                                                 │ │   │
-│  │ └─────────────────────────────────────────────────┘ │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ☑ Create Pull Request automatically                       │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│                              [Cancel]  [🚀 Start Autocoder] │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### 4.2.3 Extension Manifest Contributions
-
-```json
-{
-  "manifestVersion": 1,
-  "id": "autocoder",
-  "name": "Autocoder",
-  "version": "1.0.0",
-  "publisher": "your-publisher",
-  "description": "AI-powered code generation for Azure DevOps",
-  "categories": ["Azure Boards", "Azure Pipelines"],
-  "targets": [
-    {
-      "id": "Microsoft.VisualStudio.Services"
-    }
-  ],
-  "contributions": [
-    {
-      "id": "autocoder-work-item-menu",
-      "type": "ms.vss-web.action",
-      "targets": [
-        "ms.vss-work-web.work-item-context-menu"
-      ],
-      "properties": {
-        "text": "Autocoder",
-        "title": "Generate code with AI",
-        "icon": "images/autocoder-icon.png",
-        "group": "actions",
-        "uri": "dist/work-item-action.html"
-      }
-    },
-    {
-      "id": "autocoder-work-item-form-group",
-      "type": "ms.vss-work-web.work-item-form-group",
-      "targets": [
-        "ms.vss-work-web.work-item-form"
-      ],
-      "properties": {
-        "name": "Autocoder",
-        "uri": "dist/work-item-form-group.html"
-      }
-    },
-    {
-      "id": "autocoder-dialog",
-      "type": "ms.vss-web.external-content",
-      "properties": {
-        "uri": "dist/dialog.html"
-      }
-    }
-  ],
-  "files": [
-    {
-      "path": "dist",
-      "addressable": true
-    },
-    {
-      "path": "images",
-      "addressable": true
-    }
-  ],
-  "scopes": [
-    "vso.build_execute",
-    "vso.code_write",
-    "vso.work_write"
-  ]
-}
-```
-
-#### 4.2.4 API Interactions
-
-**Fetch Repositories:**
-```http
-GET https://dev.azure.com/{organization}/{project}/_apis/git/repositories?api-version=7.0
-```
-
-**Fetch Branches:**
-```http
-GET https://dev.azure.com/{organization}/{project}/_apis/git/repositories/{repositoryId}/refs?filter=heads/&api-version=7.0
-```
-
-**Fetch Pipelines:**
-```http
-GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?api-version=7.0
-```
-
-**Trigger Pipeline Run:**
-```http
-POST https://dev.azure.com/{organization}/{project}/_apis/pipelines/{pipelineId}/runs?api-version=7.0
-
-{
-  "templateParameters": {
-    "workItemId": "1234",
-    "agentType": "claude",
-    "userPrompt": "Additional instructions...",
-    "createPullRequest": "true",
-    "targetBranch": "main"
-  },
-  "resources": {
-    "repositories": {
-      "self": {
-        "refName": "refs/heads/main"
-      }
-    }
-  }
-}
-```
-
----
-
 ## 5. Security Considerations
 
 ### 5.1 Authentication & Authorization
@@ -448,7 +279,6 @@ POST https://dev.azure.com/{organization}/{project}/_apis/pipelines/{pipelineId}
 | Component | Authentication Method | Permissions Required |
 |-----------|----------------------|---------------------|
 | Pipeline Task | Pipeline OAuth Token | Code Read/Write, Work Items Read |
-| Boards Extension | User OAuth Token | Build Execute, Code Write, Work Items Read |
 | GitHub Copilot | GITHUB_PAT (secret variable) | GitHub Copilot access |
 | Claude Code | CLAUDE_API_KEY (secret variable) | Anthropic API access |
 
@@ -483,45 +313,40 @@ POST https://dev.azure.com/{organization}/{project}/_apis/pipelines/{pipelineId}
 │                              Data Flow Diagram                                │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-  User                Azure Boards           Pipeline                AI Agent
-   │                      │                     │                       │
-   │  Click Autocoder     │                     │                       │
-   │─────────────────────►│                     │                       │
-   │                      │                     │                       │
-   │  Select Options      │                     │                       │
-   │─────────────────────►│                     │                       │
-   │                      │                     │                       │
-   │  Trigger             │  POST /pipelines    │                       │
-   │─────────────────────►│────────────────────►│                       │
-   │                      │  {workItemId,       │                       │
-   │                      │   agentType, ...}   │                       │
-   │                      │                     │                       │
-   │                      │                     │  GET /workitems/{id}  │
-   │                      │◄────────────────────│                       │
-   │                      │                     │                       │
-   │                      │  {title, desc,      │                       │
-   │                      │   acceptance...}    │                       │
-   │                      │────────────────────►│                       │
-   │                      │                     │                       │
-   │                      │                     │  Start Container      │
-   │                      │                     │──────────────────────►│
-   │                      │                     │  {context, prompt}    │
-   │                      │                     │                       │
-   │                      │                     │                       │
-   │                      │                     │  Generated Code       │
-   │                      │                     │◄──────────────────────│
-   │                      │                     │                       │
-   │                      │                     │  git commit & push    │
-   │                      │                     │──────────────────────►│
-   │                      │                     │      (to repo)        │
-   │                      │                     │                       │
-   │                      │                     │  POST /pullrequests   │
-   │                      │                     │──────────────────────►│
-   │                      │                     │      (to repo)        │
-   │                      │                     │                       │
-   │  Notification        │                     │                       │
-   │◄─────────────────────│◄────────────────────│                       │
-   │  (PR Created)        │                     │                       │
+  Pipeline Run           Azure Boards API         AI Agent Container      Git/PR
+       │                      │                         │                   │
+       │  Task Starts         │                         │                   │
+       │──────────────────────┤                         │                   │
+       │                      │                         │                   │
+       │  GET /workitems/{id} │                         │                   │
+       │─────────────────────►│                         │                   │
+       │                      │                         │                   │
+       │  {title, desc,       │                         │                   │
+       │   acceptance...}     │                         │                   │
+       │◄─────────────────────│                         │                   │
+       │                      │                         │                   │
+       │  Start Container     │                         │                   │
+       │───────────────────────────────────────────────►│                   │
+       │  {context, prompt}   │                         │                   │
+       │                      │                         │                   │
+       │                      │                         │  Analyze Code     │
+       │                      │                         │──────────────────►│
+       │                      │                         │                   │
+       │                      │                         │  Generate Changes │
+       │                      │                         │◄──────────────────│
+       │                      │                         │                   │
+       │  Generated Code      │                         │                   │
+       │◄──────────────────────────────────────────────│                   │
+       │                      │                         │                   │
+       │  git commit & push   │                         │                   │
+       │──────────────────────────────────────────────────────────────────►│
+       │                      │                         │                   │
+       │  POST /pullrequests  │                         │                   │
+       │──────────────────────────────────────────────────────────────────►│
+       │                      │                         │                   │
+       │  PR Created          │                         │                   │
+       │◄─────────────────────────────────────────────────────────────────│
+       │                      │                         │                   │
 ```
 
 ---
@@ -536,26 +361,9 @@ ado-autocoder/
 │   └── USER_GUIDE.md                # End-user documentation
 │
 ├── src/
-│   ├── extension/                   # Azure Boards Extension
-│   │   ├── package.json
-│   │   ├── vss-extension.json       # Extension manifest
-│   │   ├── tsconfig.json
-│   │   ├── webpack.config.js
-│   │   └── src/
-│   │       ├── work-item-action/    # Work item menu action
-│   │       │   ├── work-item-action.ts
-│   │       │   └── work-item-action.html
-│   │       ├── dialog/              # Trigger modal dialog
-│   │       │   ├── dialog.ts
-│   │       │   ├── dialog.html
-│   │       │   └── dialog.scss
-│   │       ├── services/            # Shared services
-│   │       │   ├── azure-devops.service.ts
-│   │       │   └── pipeline.service.ts
-│   │       └── models/              # TypeScript interfaces
-│   │           └── index.ts
-│   │
-│   └── task/                        # Pipeline Task
+│   └── task/                        # Pipeline Task Extension
+│       ├── vss-extension.json       # Extension manifest
+│       ├── package.json
 │       ├── AutocoderV1/
 │       │   ├── task.json            # Task definition
 │       │   ├── package.json
@@ -571,7 +379,8 @@ ado-autocoder/
 │       │   │       └── default-system-prompt.md
 │       │   └── tests/
 │       │       └── *.test.ts
-│       └── vss-extension.json       # Task extension manifest
+│       └── images/
+│           └── autocoder-icon.png   # Extension icon
 │
 ├── containers/
 │   ├── copilot/
@@ -586,7 +395,7 @@ ado-autocoder/
 │           └── run-claude.sh
 │
 ├── pipelines/
-│   ├── build-extension.yml          # CI/CD for extension
+│   ├── build-task.yml               # CI/CD for task extension
 │   ├── build-containers.yml         # CI/CD for containers
 │   └── templates/
 │       └── autocoder-template.yml   # Example usage template
@@ -603,14 +412,14 @@ ado-autocoder/
 ### Phase 1: Foundation (Weeks 1-2)
 - [ ] Set up project structure and build pipelines
 - [ ] Create base container images (Ubuntu + dependencies)
-- [ ] Implement basic pipeline task without AI integration
-- [ ] Create extension scaffold with work item button
+- [ ] Implement basic pipeline task scaffold
+- [ ] Create extension manifest and packaging
 
 ### Phase 2: AI Integration (Weeks 3-4)
 - [ ] Integrate GitHub Copilot CLI into container
 - [ ] Integrate Claude Code CLI into container
 - [ ] Implement agent execution logic in pipeline task
-- [ ] Add work item context fetching
+- [ ] Add work item context fetching via Azure DevOps API
 
 ### Phase 3: Git & PR Operations (Weeks 5-6)
 - [ ] Implement branch creation and commit logic
@@ -618,13 +427,12 @@ ado-autocoder/
 - [ ] Link PR to work item automatically
 - [ ] Add status reporting back to work item
 
-### Phase 4: UI & Polish (Weeks 7-8)
-- [ ] Complete modal dialog implementation
-- [ ] Add loading states and error handling
-- [ ] Implement pipeline selection and configuration
-- [ ] Add user preferences/settings
+### Phase 4: Polish & Error Handling (Week 7)
+- [ ] Add comprehensive error handling
+- [ ] Implement logging and diagnostics
+- [ ] Add input validation and edge case handling
 
-### Phase 5: Testing & Documentation (Weeks 9-10)
+### Phase 5: Testing & Documentation (Weeks 8-9)
 - [ ] Unit and integration testing
 - [ ] End-to-end testing with real repositories
 - [ ] Security review
@@ -656,14 +464,15 @@ ado-autocoder/
 
 ## 10. Future Enhancements
 
-1. **Multi-file Context** - Allow specifying additional files for context
-2. **Conversation Mode** - Iterative refinement of generated code
-3. **Template Library** - Pre-defined prompts for common tasks
-4. **Usage Analytics** - Track success rates and patterns
-5. **Cost Management** - Token usage tracking and limits
-6. **Custom Agents** - Support for additional AI providers
-7. **Code Review Integration** - AI-assisted code review comments
-8. **Learning Mode** - Learn from accepted/rejected PRs
+1. **Azure Boards Extension** - Companion extension with work item button and trigger modal for seamless UI integration
+2. **Multi-file Context** - Allow specifying additional files for context
+3. **Conversation Mode** - Iterative refinement of generated code
+4. **Template Library** - Pre-defined prompts for common tasks
+5. **Usage Analytics** - Track success rates and patterns
+6. **Cost Management** - Token usage tracking and limits
+7. **Custom Agents** - Support for additional AI providers
+8. **Code Review Integration** - AI-assisted code review comments
+9. **Learning Mode** - Learn from accepted/rejected PRs
 
 ---
 
