@@ -15,6 +15,10 @@ Autocoder is an Azure DevOps pipeline task extension that leverages AI coding ag
 
 ```
 ado-autocoder/
+├── .github/
+│   └── workflows/             # GitHub Actions CI/CD
+│       ├── build-extension.yml
+│       └── build-containers.yml
 ├── docs/
 │   └── DESIGN.md              # Design document
 ├── src/
@@ -24,13 +28,9 @@ ado-autocoder/
 │       │   ├── tests/         # Unit tests
 │       │   └── task.json      # Task definition
 │       └── vss-extension.json # Task extension manifest
-├── containers/
-│   ├── copilot/               # GitHub Copilot container
-│   └── claude/                # Claude Code container
-└── pipelines/
-    ├── build-extension.yml    # Extension CI/CD
-    ├── build-containers.yml   # Container CI/CD
-    └── templates/             # Usage templates
+└── containers/
+    ├── copilot/               # GitHub Copilot container
+    └── claude/                # Claude Code container
 ```
 
 ## Prerequisites
@@ -141,6 +141,17 @@ docker build -t autocoder/ubuntu-claude:latest containers/claude/
 - Generated code should be reviewed before merging
 - Container images run as non-root users
 - Consider adding branch policies for AI-generated PRs
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **Build Extension** (`.github/workflows/build-extension.yml`): Builds, tests, and packages the Azure DevOps task extension
+- **Build Containers** (`.github/workflows/build-containers.yml`): Builds and pushes Docker container images to GitHub Container Registry
+
+Container images are published to:
+- `ghcr.io/<owner>/ado-autocoder/ubuntu-copilot:latest`
+- `ghcr.io/<owner>/ado-autocoder/ubuntu-claude:latest`
 
 ## License
 
