@@ -1,63 +1,40 @@
 # Autocoder - Claude Code Container
-# Base image: Ubuntu 22.04 LTS with common development tools
-FROM ubuntu:22.04
-
-# Prevent interactive prompts during installation
+FROM ubuntu:latest
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Install common dependencies
+ENV NODE_VERSION=24.13.0
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
     git \
+    unzip \
     build-essential \
-    ca-certificates \
-    gnupg \
-    lsb-release \
     sudo \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Node.js 20.x
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python 3 and pip
-RUN apt-get update && apt-get install -y \
+    dotnet-sdk-10.0 \
     python3 \
     python3-pip \
-    python3-venv \
-    && rm -rf /var/lib/apt/lists/*
+    python-is-python3 \
+    && ARCH= && dpkgArch="$(dpkg --print-architecture)" \
+    && case "${dpkgArch##*-}" in \
+    amd64) ARCH='x64';; \
+    ppc64el) ARCH='ppc64le';; \
+    s390x) ARCH='s390x';; \
+    arm64) ARCH='arm64';; \
+    armhf) ARCH='armv7l';; \
+    i386) ARCH='x86';; \
+    *) echo "unsupported architecture"; exit 1 ;; \
+    esac \
+    && curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+    && tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner \
+    && rm "node-v$NODE_VERSION-linux-$ARCH.tar.xz" \
+    && ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+    && npm i -g @anthropic-ai/claude-code \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/*
 
-# Install .NET SDK 8.0
-RUN wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
-    && dpkg -i packages-microsoft-prod.deb \
-    && rm packages-microsoft-prod.deb \
-    && apt-get update \
-    && apt-get install -y dotnet-sdk-8.0 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
-RUN useradd -m -s /bin/bash autocoder \
-    && echo "autocoder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Set up workspace directory
-WORKDIR /workspace
-
-# Copy entrypoint and scripts
+WORKDIR /src
 COPY entrypoint.sh /entrypoint.sh
-COPY scripts/ /scripts/
-RUN chmod +x /entrypoint.sh /scripts/*.sh
+RUN chmod +x /entrypoint.sh
+RUN mkdir /out
+RUN chmod 777 /out
 
-# Switch to non-root user
-USER autocoder
-
-# Set environment variables
-ENV HOME=/home/autocoder
-ENV PATH="${HOME}/.local/bin:${PATH}"
-
-# Install Claude CLI via npm (as autocoder user)
-RUN npm install -g @anthropic-ai/claude-code || echo "Note: Claude CLI will be installed at runtime if needed"
-
-# Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

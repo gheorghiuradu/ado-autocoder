@@ -1,0 +1,32 @@
+{
+  "name": "autocoder-task",
+  "version": "1.0.0",
+  "description": "Azure DevOps pipeline task for AI-powered code generation",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --outDir ./dist",
+    "prebuild": "rm -rf ./dist",
+    "postbuild": "cp task.json ./dist/ && cp -r node_modules ./dist/ && cp default-system-prompt.md ./dist/",
+    "package:dev": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/dev.json --rev-version",
+    "package:release": " cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --rev-version",
+    "publish:dev": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --overrides-file ../config/dev.json --token $PAT",
+    "publish:release": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --token $PAT"
+  },
+  "keywords": [
+    "azure-devops",
+    "pipeline",
+    "task",
+    "ai",
+    "code-generation"
+  ],
+  "dependencies": {
+    "azure-devops-node-api": "^15.1.2",
+    "azure-pipelines-task-lib": "^5.2.5",
+    "node": "^25.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.3",
+    "@types/q": "^1.5.8",
+    "typescript": "^5.9.3"
+  }
+}

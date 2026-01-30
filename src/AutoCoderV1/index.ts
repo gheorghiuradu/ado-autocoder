@@ -1,5 +1,5 @@
 import * as tl from 'azure-pipelines-task-lib/task';
-import { TaskRunner } from './src/task-runner';
+import { TaskRunner } from './task-runner';
 
 async function run(): Promise<void> {
     try {

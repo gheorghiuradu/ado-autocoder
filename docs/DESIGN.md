@@ -465,14 +465,9 @@ ado-autocoder/
 ## 10. Future Enhancements
 
 1. **Azure Boards Extension** - Companion extension with work item button and trigger modal for seamless UI integration
-2. **Multi-file Context** - Allow specifying additional files for context
-3. **Conversation Mode** - Iterative refinement of generated code
-4. **Template Library** - Pre-defined prompts for common tasks
-5. **Usage Analytics** - Track success rates and patterns
-6. **Cost Management** - Token usage tracking and limits
-7. **Custom Agents** - Support for additional AI providers
-8. **Code Review Integration** - AI-assisted code review comments
-9. **Learning Mode** - Learn from accepted/rejected PRs
+2. **Custom Agents** - Support for additional AI providers
+3  **Custom Models** - Allow users to select the AI models to use
+4. **PR Integration** - Run agents from PR tab with comments context
 
 ---
 

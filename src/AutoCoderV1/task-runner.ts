@@ -10,12 +10,11 @@ export interface TaskInputs {
     workItemId?: string;
     userPrompt?: string;
     agentType: 'copilot' | 'claude';
+    apiKey: string;
     containerImage?: string;
     systemPrompt?: string;
     createPullRequest: boolean;
     targetBranch: string;
-    sourceBranchPrefix: string;
-    additionalContext?: string;
 }
 
 export class TaskRunner {
@@ -32,20 +31,20 @@ export class TaskRunner {
     }
 
     async run(): Promise<void> {
-        tl.debug('Starting Autocoder task');
+        console.log('Starting Autocoder task');
 
         // Get and validate inputs
         const inputs = this.getInputs();
         this.validateInputs(inputs);
 
-        tl.debug(`Agent type: ${inputs.agentType}`);
-        tl.debug(`Create PR: ${inputs.createPullRequest}`);
-        tl.debug(`Target branch: ${inputs.targetBranch}`);
+        console.log(`Agent type: ${inputs.agentType}`);
+        console.log(`Create PR: ${inputs.createPullRequest}`);
+        console.log(`Target branch: ${inputs.targetBranch}`);
 
         // Fetch work item details if provided
         let workItemDetails = '';
         if (inputs.workItemId) {
-            tl.debug(`Fetching work item: ${inputs.workItemId}`);
+            console.log(`Fetching work item: ${inputs.workItemId}`);
             workItemDetails = await this.workItemService.getWorkItemDetails(inputs.workItemId);
         }
 
@@ -54,23 +53,21 @@ export class TaskRunner {
             inputs.systemPrompt,
             workItemDetails,
             inputs.userPrompt,
-            inputs.additionalContext
         );
 
         // Generate branch name
-        const branchName = this.generateBranchName(inputs.sourceBranchPrefix, inputs.workItemId);
-        tl.debug(`Generated branch name: ${branchName}`);
-
-        // Create and checkout new branch
-        await this.gitOperations.createBranch(branchName, inputs.targetBranch);
+        const branchName = this.gitOperations.getCurrentBranch();
+        console.log(`Generated branch name: ${branchName}`);
 
         // Execute the AI agent
-        tl.debug('Executing AI agent');
+        console.log('Executing AI agent');
         await this.agentExecutor.execute({
             agentType: inputs.agentType,
             containerImage: inputs.containerImage,
             systemPrompt: systemPrompt,
-            workingDirectory: tl.getVariable('Build.SourcesDirectory') || process.cwd()
+            workingDirectory: tl.getVariable('Build.SourcesDirectory') || process.cwd(),
+            outDirectory: tl.getVariable('Build.ArtifactStagingDirectory') || `${process.cwd()}/out`,
+            apiKey: inputs.apiKey,
         });
 
         // Check if there are any changes
@@ -89,10 +86,11 @@ export class TaskRunner {
 
         // Create pull request if requested
         if (inputs.createPullRequest) {
-            tl.debug('Creating pull request');
+            console.log('Creating pull request');
             const prTitle = this.generatePRTitle(inputs.workItemId, inputs.userPrompt);
-            const prDescription = this.generatePRDescription(inputs.workItemId, inputs.userPrompt, inputs.agentType);
-            
+            const log = fs.readFileSync(path.join(tl.getVariable('Build.ArtifactStagingDirectory') || `${process.cwd()}/out`, 'autocoder.log'), 'utf-8');
+            const prDescription = this.generatePRDescription(inputs.workItemId, inputs.userPrompt, inputs.agentType, log);
+
             const prUrl = await this.pullRequestService.createPullRequest({
                 sourceBranch: branchName,
                 targetBranch: inputs.targetBranch,
@@ -113,12 +111,11 @@ export class TaskRunner {
             workItemId: tl.getInput('workItemId', false),
             userPrompt: tl.getInput('userPrompt', false),
             agentType: tl.getInput('agentType', true) as 'copilot' | 'claude',
+            apiKey: tl.getInput('apiKey', true) || '',
             containerImage: tl.getInput('containerImage', false),
             systemPrompt: tl.getInput('systemPrompt', false),
             createPullRequest: tl.getBoolInput('createPullRequest', false) ?? true,
             targetBranch: tl.getInput('targetBranch', false) || 'main',
-            sourceBranchPrefix: tl.getInput('sourceBranchPrefix', false) || 'autocoder/',
-            additionalContext: tl.getInput('additionalContext', false)
         };
     }
 
@@ -130,13 +127,16 @@ export class TaskRunner {
         if (!['copilot', 'claude'].includes(inputs.agentType)) {
             throw new Error(`Invalid agent type: ${inputs.agentType}. Must be 'copilot' or 'claude'`);
         }
+
+        if (!inputs.apiKey) {
+            throw new Error('API key must be provided');
+        }
     }
 
     private async prepareSystemPrompt(
         customSystemPrompt: string | undefined,
         workItemDetails: string,
         userPrompt: string | undefined,
-        additionalContext: string | undefined
     ): Promise<string> {
         let systemPrompt: string;
 
@@ -144,27 +144,17 @@ export class TaskRunner {
             systemPrompt = customSystemPrompt;
         } else {
             // Read default system prompt
-            const promptPath = path.join(__dirname, 'prompts', 'default-system-prompt.md');
+            const promptPath = path.join(__dirname, 'default-system-prompt.md');
             systemPrompt = fs.readFileSync(promptPath, 'utf-8');
         }
 
         // Replace placeholders
-        systemPrompt = systemPrompt.replace('{work_item_details}', workItemDetails || 'No work item provided');
-        systemPrompt = systemPrompt.replace('{user_prompt}', userPrompt || 'No additional instructions provided');
-
-        if (additionalContext) {
-            systemPrompt += `\n\nAdditional Context:\n${additionalContext}`;
-        }
+        systemPrompt = systemPrompt.replace('{work_item_details}', `Work Item Context:
+            ${workItemDetails}` || '');
+        systemPrompt = systemPrompt.replace('{user_prompt}', `Additional Instructions:
+            ${userPrompt}` || '');
 
         return systemPrompt;
-    }
-
-    private generateBranchName(prefix: string, workItemId?: string): string {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        if (workItemId) {
-            return `${prefix}wi-${workItemId}-${timestamp}`;
-        }
-        return `${prefix}${timestamp}`;
     }
 
     private generateCommitMessage(workItemId?: string, userPrompt?: string): string {
@@ -194,7 +184,7 @@ export class TaskRunner {
         return title;
     }
 
-    private generatePRDescription(workItemId?: string, userPrompt?: string, agentType?: string): string {
+    private generatePRDescription(workItemId?: string, userPrompt?: string, agentType?: string, log?: string): string {
         let description = '## 🤖 AI-Generated Pull Request\n\n';
         description += 'This pull request was automatically generated by Autocoder.\n\n';
         description += `**AI Agent:** ${agentType === 'copilot' ? 'GitHub Copilot' : 'Claude Code'}\n\n`;
@@ -210,6 +200,14 @@ export class TaskRunner {
         description += '---\n\n';
         description += '⚠️ **Note:** This code was generated by AI and requires human review before merging.\n';
         description += 'Please verify the changes carefully and ensure they meet your quality standards.\n';
+
+        if (log) {
+            description += '\n---\n\n';
+            description += '### Autocoder Log Output\n';
+            description += '```\n';
+            description += log;
+            description += '\n```\n';
+        }
 
         return description;
     }

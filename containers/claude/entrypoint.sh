@@ -1,25 +1,22 @@
 #!/bin/bash
-set -e
-
-echo "=== Autocoder - Claude Code Agent ==="
-
-# Validate required environment variables
-if [ -z "$CLAUDE_API_KEY" ]; then
-    echo "Error: CLAUDE_API_KEY environment variable is required"
-    exit 1
+if [ -z "$1" ]; then
+  echo "Usage: $0 <prompt>"
+  exit 1
+fi
+if [ -z "$HID" ]; then
+  HID=1000
+fi
+if [ -z "$HGID" ]; then
+  HGID=1000
+fi
+if ! getent group $HGID > /dev/null 2>&1; then
+    addgroup coder --gid $HGID
+fi
+if ! getent passwd $HID > /dev/null 2>&1; then
+    adduser coder --uid $HID --gid $HGID --gecos "Coder" --disabled-password
 fi
 
-# Export the API key for Claude CLI
-export ANTHROPIC_API_KEY="$CLAUDE_API_KEY"
-
-# Decode the prompt from base64 if provided
-if [ -n "$AUTOCODER_PROMPT" ]; then
-    PROMPT=$(echo "$AUTOCODER_PROMPT" | base64 -d)
-    echo "Prompt received, executing Claude agent..."
-else
-    echo "No prompt provided, running in interactive mode..."
-    PROMPT=""
-fi
-
-# Execute the Claude agent script
-exec /scripts/run-claude.sh "$PROMPT"
+USERNAME=$(getent passwd $HID | cut -d: -f1)
+usermod -aG sudo $USERNAME
+passwd -d $USERNAME
+su $USERNAME -c "claude --print --dangerously-skip-permissions \"$1\" > /out/autocoder.log 2>&1"

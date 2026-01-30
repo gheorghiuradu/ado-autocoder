@@ -8,34 +8,17 @@ export class GitOperations {
         this.gitPath = tl.which('git', true);
     }
 
-    async createBranch(branchName: string, baseBranch: string): Promise<void> {
-        tl.debug(`Creating branch ${branchName} from ${baseBranch}`);
-
-        // Ensure we have the latest from the base branch
-        await this.fetch();
-
-        // Create and checkout the new branch
+    getCurrentBranch(): string {
         const git = tl.tool(this.gitPath);
-        git.arg('checkout');
-        git.arg('-b');
-        git.arg(branchName);
-        git.arg(`origin/${baseBranch}`);
+        git.arg('rev-parse');
+        git.arg('--abbrev-ref');
 
-        const result = await git.exec(this.getExecOptions());
-        if (result !== 0) {
-            throw new Error(`Failed to create branch ${branchName} from ${baseBranch}`);
-        }
-    }
+        const branchName = git.execSync({
+            ...this.getExecOptions(),
+            silent: true
+        }).stdout.trim();
 
-    async fetch(): Promise<void> {
-        const git = tl.tool(this.gitPath);
-        git.arg('fetch');
-        git.arg('origin');
-
-        const result = await git.exec(this.getExecOptions());
-        if (result !== 0) {
-            throw new Error('Failed to fetch from origin');
-        }
+        return branchName;
     }
 
     async hasChanges(): Promise<boolean> {
@@ -43,7 +26,7 @@ export class GitOperations {
         const gitAdd = tl.tool(this.gitPath);
         gitAdd.arg('add');
         gitAdd.arg('-A');
-        await gitAdd.exec(this.getExecOptions());
+        await gitAdd.execAsync(this.getExecOptions());
 
         // Check if there are staged changes
         const git = tl.tool(this.gitPath);
@@ -52,7 +35,7 @@ export class GitOperations {
         git.arg('--quiet');
 
         // diff --quiet returns 0 if no changes, 1 if there are changes
-        const result = await git.exec({
+        const result = await git.execAsync({
             ...this.getExecOptions(),
             ignoreReturnCode: true
         });
@@ -71,7 +54,7 @@ export class GitOperations {
         git.arg('-m');
         git.arg(message);
 
-        const result = await git.exec(this.getExecOptions());
+        const result = await git.execAsync(this.getExecOptions());
         if (result !== 0) {
             throw new Error('Failed to commit changes');
         }
@@ -85,7 +68,7 @@ export class GitOperations {
         git.arg('origin');
         git.arg(branchName);
 
-        const result = await git.exec(this.getExecOptions());
+        const result = await git.execAsync(this.getExecOptions());
         if (result !== 0) {
             throw new Error(`Failed to push branch ${branchName}`);
         }
@@ -108,7 +91,7 @@ export class GitOperations {
             setName.arg('config');
             setName.arg('user.name');
             setName.arg('Autocoder Bot');
-            await setName.exec(this.getExecOptions());
+            await setName.execAsync(this.getExecOptions());
         }
 
         // Check if email is already configured
@@ -127,7 +110,7 @@ export class GitOperations {
             setEmail.arg('config');
             setEmail.arg('user.email');
             setEmail.arg('autocoder@example.com');
-            await setEmail.exec(this.getExecOptions());
+            await setEmail.execAsync(this.getExecOptions());
         }
     }
 

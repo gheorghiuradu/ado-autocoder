@@ -2,10 +2,13 @@
   "manifestVersion": 1,
   "id": "autocoder-task",
   "name": "Autocoder Task",
-  "version": "1.0.0",
-  "publisher": "autocoder",
+  "version": "0.0.9",
+  "publisher": "RaduGheorghiu",
   "description": "Azure DevOps Pipeline Task for AI-powered code generation",
-  "categories": ["Azure Pipelines"],
+  "categories": [
+    "Azure Pipelines",
+    "Azure Repos"
+  ],
   "targets": [
     {
       "id": "Microsoft.VisualStudio.Services"
@@ -16,7 +19,10 @@
   },
   "files": [
     {
-      "path": "AutocoderV1"
+      "path": "images"
+    },
+    {
+      "path": "AutoCoderV1/dist"
     }
   ],
   "contributions": [
@@ -27,7 +33,7 @@
         "ms.vss-distributed-task.tasks"
       ],
       "properties": {
-        "name": "AutocoderV1"
+        "name": "AutoCoderV1/dist"
       }
     }
   ]
