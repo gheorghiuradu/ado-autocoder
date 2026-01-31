@@ -9,14 +9,18 @@ fi
 if [ -z "$HGID" ]; then
   HGID=1000
 fi
+
 if ! getent group $HGID > /dev/null 2>&1; then
+    echo "Creating group with GID $HGID"
     addgroup coder --gid $HGID
 fi
 if ! getent passwd $HID > /dev/null 2>&1; then
+    echo "Creating user with UID $HID"
     adduser coder --uid $HID --gid $HGID --gecos "Coder" --disabled-password --shell /bin/bash
 fi
 
 USERNAME=$(getent passwd $HID | cut -d: -f1)
+echo "Using username: $USERNAME"
 usermod -aG sudo $USERNAME
 passwd -d $USERNAME
 
