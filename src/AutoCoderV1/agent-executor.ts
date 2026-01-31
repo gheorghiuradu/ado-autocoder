@@ -70,7 +70,7 @@ export class AgentExecutor {
         docker.arg('-e').arg(`HID=${uid}`);
         docker.arg('-e').arg(`HGID=${gid}`);
         if (options.agentType === 'copilot') {
-            docker.arg('-e').arg(`GITHUB_PAT=${options.apiKey}`);
+            docker.arg('-e').arg(`GITHUB_TOKEN=${options.apiKey}`);
         } else {
             docker.arg('-e').arg(`CLAUDE_API_KEY=${options.apiKey}`);
         }

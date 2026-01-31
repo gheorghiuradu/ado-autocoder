@@ -25,4 +25,4 @@ usermod -aG sudo $USERNAME
 passwd -d $USERNAME
 
 PROMPT=$(echo "$1" | base64 -d)
-su $USERNAME -c "copilot -p\"$PROMPT\" --yolo > /out/autocoder.log 2>&1"
+su $USERNAME -c "cd /src && copilot -p\"$PROMPT\" --yolo > /out/autocoder.log 2>&1"
