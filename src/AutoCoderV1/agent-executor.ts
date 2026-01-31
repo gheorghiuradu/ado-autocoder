@@ -1,5 +1,7 @@
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as tr from 'azure-pipelines-task-lib/toolrunner';
+import * as os from 'os';
+
 
 export interface AgentExecutorOptions {
     agentType: 'copilot' | 'claude';
@@ -56,14 +58,17 @@ export class AgentExecutor {
         const dockerPath = tl.which('docker', true);
         const docker = tl.tool(dockerPath);
 
-        // Build docker run command
+
+        // Get current user's UID and GID
+        const uid = process.getuid?.() ?? 1000;
+        const gid = process.getgid?.() ?? 1000;
+
         docker.arg('run');
         docker.arg('--rm');
         docker.arg('-v').arg(`${options.workingDirectory}:/src`);
         docker.arg('-v').arg(`${options.outDirectory}:/out`);
-        docker.arg('-e').arg('HID=$(id -u)');
-        docker.arg('-e').arg('HGID=$(id -g)');
-        // Pass environment variables
+        docker.arg('-e').arg(`HID=${uid}`);
+        docker.arg('-e').arg(`HGID=${gid}`);
         if (options.agentType === 'copilot') {
             docker.arg('-e').arg(`GITHUB_PAT=${options.apiKey}`);
         } else {
