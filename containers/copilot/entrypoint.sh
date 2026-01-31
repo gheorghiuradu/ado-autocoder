@@ -24,6 +24,7 @@ echo "Using username: $USERNAME"
 usermod -aG sudo $USERNAME
 passwd -d $USERNAME
 
+echo "$1"
 echo "$1" | base64 -d
 PROMPT=$(echo "$1" | base64 -d)
 echo "Executing copilot with prompt $PROMPT"
