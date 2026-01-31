@@ -65,7 +65,7 @@ export class AgentExecutor {
         docker.arg('-e').arg('HGID=$(id -g)');
         // Pass environment variables
         if (options.agentType === 'copilot') {
-            docker.arg('-e').arg(`GITHUB_PAT=${options.apiKey})}`);
+            docker.arg('-e').arg(`GITHUB_PAT=${options.apiKey}`);
         } else {
             docker.arg('-e').arg(`CLAUDE_API_KEY=${options.apiKey}`);
         }

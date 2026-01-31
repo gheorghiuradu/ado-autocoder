@@ -19,4 +19,6 @@ fi
 USERNAME=$(getent passwd $HID | cut -d: -f1)
 usermod -aG sudo $USERNAME
 passwd -d $USERNAME
-su $USERNAME -c "copilot -p\"$1\" --yolo > /out/autocoder.log 2>&1"
+
+PROMPT=$(echo "$1" | base64 -d)
+su $USERNAME -c "copilot -p\"$PROMPT\" --yolo > /out/autocoder.log 2>&1"

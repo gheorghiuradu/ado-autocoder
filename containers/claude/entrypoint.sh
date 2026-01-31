@@ -19,4 +19,6 @@ fi
 USERNAME=$(getent passwd $HID | cut -d: -f1)
 usermod -aG sudo $USERNAME
 passwd -d $USERNAME
-su $USERNAME -c "claude --print --dangerously-skip-permissions \"$1\" > /out/autocoder.log 2>&1"
+
+PROMPT=$(echo "$1" | base64 -d)
+su $USERNAME -c "claude --print --dangerously-skip-permissions \"$PROMPT\" > /out/autocoder.log 2>&1"
