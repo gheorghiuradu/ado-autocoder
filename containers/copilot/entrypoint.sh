@@ -4,10 +4,10 @@ if [ -z "$1" ]; then
   exit 1
 fi
 if [ -z "$HID" ]; then
-  HID=1000
+  HID=1001
 fi
 if [ -z "$HGID" ]; then
-  HGID=1000
+  HGID=1001
 fi
 
 if ! getent group $HGID > /dev/null 2>&1; then
@@ -25,4 +25,5 @@ usermod -aG sudo $USERNAME
 passwd -d $USERNAME
 
 PROMPT=$(echo "$1" | base64 -d)
+echo "Starting copilot code generation... this may take a while."
 su $USERNAME -c "cd /src && copilot -p\"$PROMPT\" --yolo > /out/autocoder.log 2>&1"

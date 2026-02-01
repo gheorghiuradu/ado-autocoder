@@ -4,21 +4,26 @@ if [ -z "$1" ]; then
   exit 1
 fi
 if [ -z "$HID" ]; then
-  HID=1000
+  HID=1001
 fi
 if [ -z "$HGID" ]; then
-  HGID=1000
+  HGID=1001
 fi
+
 if ! getent group $HGID > /dev/null 2>&1; then
+    echo "Creating group with GID $HGID"
     addgroup coder --gid $HGID
 fi
 if ! getent passwd $HID > /dev/null 2>&1; then
+    echo "Creating user with UID $HID"
     adduser coder --uid $HID --gid $HGID --gecos "Coder" --disabled-password
 fi
 
 USERNAME=$(getent passwd $HID | cut -d: -f1)
+echo "Using username: $USERNAME"
 usermod -aG sudo $USERNAME
 passwd -d $USERNAME
 
 PROMPT=$(echo "$1" | base64 -d)
-su $USERNAME -c "claude --print --dangerously-skip-permissions \"$PROMPT\" > /out/autocoder.log 2>&1"
+echo "Starting claude code generation... this may take a while."
+su $USERNAME -c "cd /src && claude --print --dangerously-skip-permissions \"$PROMPT\" > /out/autocoder.log 2>&1"

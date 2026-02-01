@@ -60,8 +60,8 @@ export class AgentExecutor {
 
 
         // Get current user's UID and GID
-        const uid = process.getuid?.() ?? 1000;
-        const gid = process.getgid?.() ?? 1000;
+        const uid = process.getuid?.() ?? 1001;
+        const gid = process.getgid?.() ?? 1001;
 
         docker.arg('run');
         docker.arg('--rm');
@@ -72,7 +72,7 @@ export class AgentExecutor {
         if (options.agentType === 'copilot') {
             docker.arg('-e').arg(`GITHUB_TOKEN=${options.apiKey}`);
         } else {
-            docker.arg('-e').arg(`CLAUDE_API_KEY=${options.apiKey}`);
+            docker.arg('-e').arg(`ANTHROPIC_API_KEY=${options.apiKey}`);
         }
 
         docker.arg(containerImage);

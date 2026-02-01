@@ -2,7 +2,6 @@
   "manifestVersion": 1,
   "id": "autocoder-task",
   "name": "Autocoder Task",
-  "version": "0.0.10",
   "publisher": "RaduGheorghiu",
   "description": "Azure DevOps Pipeline Task for AI-powered code generation",
   "categories": [
