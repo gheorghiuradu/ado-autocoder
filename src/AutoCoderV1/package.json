@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --outDir ./dist",
     "prebuild": "rm -rf ./dist",
-    "postbuild": "cp task.json ./dist/ && cp -r node_modules ./dist/ && cp default-system-prompt.md ./dist/",
+    "postbuild": "cp task.json ./dist/ && cp -r node_modules ./dist/ && cp default-system-prompt.md ./dist/ && cp icon.png ./dist/",
     "package:dev": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/dev.json --rev-version",
     "package:release": " cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --rev-version",
     "publish:dev": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --overrides-file ../config/dev.json --token $PAT",

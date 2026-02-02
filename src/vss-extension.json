@@ -16,9 +16,31 @@
   "icons": {
     "default": "images/icon.png"
   },
+  "content": {
+    "details": {
+      "path": "OVERVIEW.md"
+    },
+    "license": {
+      "path": "LICENSE.txt"
+    }
+  },
+  "links": {
+    "support": {
+      "uri": "https://github.com/gheorghiuradu/ado-autocoder/issues"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gheorghiuradu/ado-autocoder"
+  },
   "files": [
     {
-      "path": "images"
+      "path": "images",
+      "addressable": true
+    },
+    {
+      "path": "screenshots",
+      "addressable": true
     },
     {
       "path": "AutoCoderV1/dist"

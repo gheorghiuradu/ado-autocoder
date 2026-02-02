@@ -10,6 +10,12 @@ export interface WorkItem {
     acceptanceCriteria?: string;
 }
 
+export interface WorkItemDetails {
+    id: number;
+    title: string;
+    details: string;
+}
+
 export class WorkItemService {
     private connection: azdev.WebApi | null = null;
 
@@ -35,7 +41,7 @@ export class WorkItemService {
         return this.connection;
     }
 
-    async getWorkItemDetails(workItemId: string): Promise<string> {
+    async getWorkItemDetails(workItemId: string): Promise<WorkItemDetails> {
         const id = parseInt(workItemId, 10);
         if (isNaN(id)) {
             throw new Error(`Invalid work item ID: ${workItemId}`);
@@ -66,7 +72,11 @@ export class WorkItemService {
                 acceptanceCriteria: this.stripHtml(fields['Microsoft.VSTS.Common.AcceptanceCriteria'] || '')
             };
 
-            return this.formatWorkItemDetails(workItemData);
+            return {
+                id: workItemData.id,
+                title: workItemData.title,
+                details: this.formatWorkItemDetails(workItemData)
+            };
         } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Failed to fetch work item ${workItemId}: ${error.message}`);

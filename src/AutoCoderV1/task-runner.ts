@@ -1,5 +1,5 @@
 import * as tl from 'azure-pipelines-task-lib/task';
-import { WorkItemService } from './work-item';
+import { WorkItemDetails, WorkItemService } from './work-item';
 import { AgentExecutor } from './agent-executor';
 import { GitOperations } from './git-operations';
 import { PullRequestService } from './pull-request';
@@ -42,7 +42,7 @@ export class TaskRunner {
         console.log(`Target branch: ${inputs.targetBranch}`);
 
         // Fetch work item details if provided
-        let workItemDetails = '';
+        let workItemDetails = null as WorkItemDetails | null;
         if (inputs.workItemId) {
             console.log(`Fetching work item: ${inputs.workItemId}`);
             workItemDetails = await this.workItemService.getWorkItemDetails(inputs.workItemId);
@@ -51,7 +51,7 @@ export class TaskRunner {
         // Prepare the prompt
         const systemPrompt = await this.prepareSystemPrompt(
             inputs.systemPrompt,
-            workItemDetails,
+            workItemDetails?.details || '',
             inputs.userPrompt,
         );
 
@@ -99,7 +99,7 @@ export class TaskRunner {
         // Create pull request if requested
         if (inputs.createPullRequest) {
             console.log('Creating pull request');
-            const prTitle = this.generatePRTitle(inputs.workItemId, inputs.userPrompt);
+            const prTitle = this.generatePRTitle(inputs.workItemId, inputs.userPrompt, workItemDetails?.title);
             const log = fs.readFileSync(path.join(tl.getVariable('Build.ArtifactStagingDirectory') || `${process.cwd()}/out`, 'autocoder.log'), 'utf-8');
             const prDescription = this.generatePRDescription(inputs.workItemId, inputs.userPrompt, inputs.agentType, log);
 
@@ -182,7 +182,7 @@ export class TaskRunner {
         return message;
     }
 
-    private generatePRTitle(workItemId?: string, userPrompt?: string): string {
+    private generatePRTitle(workItemId?: string, userPrompt?: string, workItemTitle?: string): string {
         let title = '[Autocoder]';
         if (workItemId) {
             title += ` #${workItemId}:`;
@@ -190,6 +190,8 @@ export class TaskRunner {
         if (userPrompt) {
             const shortPrompt = userPrompt.substring(0, 60).replace(/\n/g, ' ');
             title += ` ${shortPrompt}${userPrompt.length > 60 ? '...' : ''}`;
+        } else if (workItemTitle) {
+            title += ` ${workItemTitle}`;
         } else {
             title += ' AI-generated code changes';
         }

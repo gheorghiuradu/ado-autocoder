@@ -46,6 +46,9 @@ export class GitOperations {
     async commitChanges(message: string): Promise<void> {
         tl.debug(`Committing changes with message: ${message}`);
 
+        // Configure git user if not already configured
+        await this.configureGitUser();
+
         const git = tl.tool(this.gitPath);
         git.arg('commit');
         git.arg('-m');
@@ -106,6 +109,44 @@ export class GitOperations {
         const result = await git.execAsync(this.getExecOptions());
         if (result !== 0) {
             throw new Error(`Failed to push branch ${branchName}`);
+        }
+    }
+
+    private async configureGitUser(): Promise<void> {
+        // Check if user is already configured
+        const checkName = tl.tool(this.gitPath);
+        checkName.arg('config');
+        checkName.arg('user.name');
+
+        const nameResult = await checkName.exec({
+            ...this.getExecOptions(),
+            ignoreReturnCode: true
+        });
+        if (nameResult !== 0) {
+            // Set user name
+            const setName = tl.tool(this.gitPath);
+            setName.arg('config');
+            setName.arg('user.name');
+            setName.arg('Autocoder Bot');
+            await setName.execAsync(this.getExecOptions());
+
+            // Check if email is already configured
+            const checkEmail = tl.tool(this.gitPath);
+            checkEmail.arg('config');
+            checkEmail.arg('user.email');
+
+            const emailResult = await checkEmail.execAsync({
+                ...this.getExecOptions(),
+                ignoreReturnCode: true
+            });
+            if (emailResult !== 0) {
+                // Set user email
+                const setEmail = tl.tool(this.gitPath);
+                setEmail.arg('config');
+                setEmail.arg('user.email');
+                setEmail.arg('autocoder@example.com');
+                await setEmail.execAsync(this.getExecOptions());
+            }
         }
     }
 

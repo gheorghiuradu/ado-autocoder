@@ -13,7 +13,7 @@
     "version": {
         "Major": 1,
         "Minor": 0,
-        "Patch": 13
+        "Patch": 16
     },
     "instanceNameFormat": "Autocoder: $(agentType)",
     "inputs": [
@@ -34,7 +34,7 @@
         {
             "name": "agentType",
             "type": "pickList",
-            "label": "AI Agent",
+            "label": "AI Agent tool",
             "required": true,
             "defaultValue": "copilot",
             "options": {
