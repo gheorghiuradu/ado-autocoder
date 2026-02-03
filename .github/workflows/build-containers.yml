@@ -35,7 +35,11 @@ jobs:
       - name: Read version from config
         id: version
         run: |
-          VERSION=$(jq -r '.version' config/dev.json)
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            VERSION=$(jq -r '.version' config/release.json)
+          else
+            VERSION=$(jq -r '.version' config/dev.json)
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Determine image tags
@@ -111,9 +115,7 @@ jobs:
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then
             TAGS="${IMAGE}:latest,${IMAGE}:${VERSION}"
           else
-            # Sanitize branch name for docker tag (replace / with -)
-            SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/\//-/g')
-            TAGS="${IMAGE}:${SAFE_BRANCH},${IMAGE}:${VERSION}"
+            TAGS="${IMAGE}:dev,${IMAGE}:${VERSION}"
           fi
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 

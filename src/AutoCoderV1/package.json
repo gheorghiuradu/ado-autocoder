@@ -6,11 +6,13 @@
   "scripts": {
     "build": "tsc --outDir ./dist",
     "prebuild": "rm -rf ./dist",
+    "sync-version:dev": "npx ts-node ./scripts/sync-version.ts ../../config/dev.json",
+    "sync-version:release": "npx ts-node ./scripts/sync-version.ts ../../config/release.json",
     "postbuild": "cp task.json ./dist/ && cp -r node_modules ./dist/ && cp default-system-prompt.md ./dist/ && cp icon.png ./dist/",
-    "package:dev": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/dev.json --rev-version",
-    "package:release": " cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --rev-version",
+    "package:dev": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/dev.json --rev-version && cd - && npm run sync-version:dev",
+    "package:release": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/release.json --rev-version && cd - && npm run sync-version:release",
     "publish:dev": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --overrides-file ../config/dev.json --token $PAT",
-    "publish:release": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --token $PAT"
+    "publish:release": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --overrides-file ../config/release.json --token $PAT"
   },
   "keywords": [
     "azure-devops",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^24.0.3",
     "@types/q": "^1.5.8",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
 }
