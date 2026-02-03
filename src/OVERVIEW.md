@@ -1,8 +1,15 @@
 # Autocoder
 ![Autocoder Icon](screenshots/icon.png)
 
-Run Github Copilot CLI or Claude Code agents directly from your Azure DevOps pipelines to generate code based on work items or custom prompts and (optionally) create pull requests with the changes.
+Run code agents directly from your Azure DevOps pipelines to generate code based on work items or custom prompts and (optionally) create pull requests with the changes.
 ![Autocoder Pipelines](screenshots/pipelines.png)
+
+## Features
+- Generate code based on Azure DevOps work items or custom user prompts.
+- Support for Github Copilot CLI and Anthropic Claude Code agents.
+- Automatic creation of pull requests with the generated code changes.
+- Runs in container for isolation and compatibility.
+- Configurable system prompts and container images for advanced customization.
 
 ![Autocoder Pull Request Example](screenshots/pull-request-claude.png)
 

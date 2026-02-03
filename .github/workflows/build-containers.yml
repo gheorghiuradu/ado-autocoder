@@ -5,17 +5,16 @@ name: Build Containers
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - 'containers/**'
-      - '.github/workflows/build-containers.yml'
+      - "containers/**"
+      - ".github/workflows/build-containers.yml"
+      - "config/dev.json"
   pull_request:
     branches:
       - main
     paths:
-      - 'containers/**'
-      - '.github/workflows/build-containers.yml'
+      - "containers/**"
+      - ".github/workflows/build-containers.yml"
 
 env:
   REGISTRY: ghcr.io
@@ -28,16 +27,38 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Read version from config
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' config/dev.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Determine image tags
+        id: tags
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ubuntu-copilot
+
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            TAGS="${IMAGE}:latest,${IMAGE}:${VERSION}"
+          else
+            # Sanitize branch name for docker tag (replace / with -)
+            SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/\//-/g')
+            TAGS="${IMAGE}:${SAFE_BRANCH},${IMAGE}:${VERSION}"
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -51,15 +72,14 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ubuntu-copilot
           tags: |
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Copilot image
         uses: docker/build-push-action@v5
         with:
           context: containers/copilot
           file: containers/copilot/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.tags.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -70,16 +90,38 @@ jobs:
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Read version from config
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' config/dev.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Determine image tags
+        id: tags
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          VERSION=${{ steps.version.outputs.version }}
+          IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ubuntu-claude
+
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            TAGS="${IMAGE}:latest,${IMAGE}:${VERSION}"
+          else
+            # Sanitize branch name for docker tag (replace / with -)
+            SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/\//-/g')
+            TAGS="${IMAGE}:${SAFE_BRANCH},${IMAGE}:${VERSION}"
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -93,15 +135,14 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ubuntu-claude
           tags: |
             type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Claude image
         uses: docker/build-push-action@v5
         with:
           context: containers/claude
           file: containers/claude/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.tags.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -111,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-copilot, build-claude]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -120,20 +161,20 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ubuntu-copilot:latest
-          format: 'sarif'
-          output: 'trivy-copilot-results.sarif'
+          format: "sarif"
+          output: "trivy-copilot-results.sarif"
         continue-on-error: true
 
       - name: Run Trivy vulnerability scanner on Claude
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ubuntu-claude:latest
-          format: 'sarif'
-          output: 'trivy-claude-results.sarif'
+          format: "sarif"
+          output: "trivy-claude-results.sarif"
         continue-on-error: true
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: '.'
+          sarif_file: "."
         continue-on-error: true
