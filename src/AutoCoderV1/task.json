@@ -1,6 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
-    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "id": "12345678-90ab-cdef-1234-567890abcdef",
     "name": "Autocoder",
     "friendlyName": "Autocoder - AI Code Generation",
     "description": "Execute AI coding agents to generate code from work items or prompts",
@@ -13,7 +13,7 @@
     "version": {
         "Major": 1,
         "Minor": 0,
-        "Patch": 1
+        "Patch": 3
     },
     "instanceNameFormat": "Autocoder: $(agentType)",
     "inputs": [

@@ -1,170 +1,24 @@
-# Autocoder - Azure DevOps AI Pipeline Task
+# ![icon](src/images/icon.png) Autocoder - Azure DevOps pipeline task that uses AI coding agents to automatically generate code from work items and create pull requests.
 
-Autocoder is an Azure DevOps pipeline task extension that leverages AI coding agents (GitHub Copilot or Claude Code) to automatically generate code solutions. The task can use work item context or custom prompts to generate code, with the results delivered as pull requests.
+For documentation and more details, see the [Marketplace entry](https://marketplace.visualstudio.com/items?itemName=RaduGheorghiu.autocoder-task).
 
-> **Note:** This extension focuses on the pipeline task. A future companion extension may provide Azure Boards UI integration.
-
-## Features
-
-- 🤖 **AI-Powered Code Generation**: Use GitHub Copilot or Claude Code to automatically generate code
-- 📋 **Work Item Context**: Optionally fetch context from Azure Boards work item descriptions
-- 🔄 **Automated PR Creation**: Automatically create pull requests with generated changes
-- 🎯 **Pipeline Task**: Easy-to-use Azure Pipelines task for CI/CD integration
-
-## Project Structure
-
-```
-ado-autocoder/
-├── .github/
-│   └── workflows/             # GitHub Actions CI/CD
-│       ├── build-extension.yml
-│       └── build-containers.yml
-├── docs/
-│   └── DESIGN.md              # Design document
-├── src/
-│   └── task/                  # Pipeline Task
-│       ├── AutocoderV1/
-│       │   ├── src/           # Task source code
-│       │   ├── tests/         # Unit tests
-│       │   └── task.json      # Task definition
-│       └── vss-extension.json # Task extension manifest
-└── containers/
-    ├── copilot/               # GitHub Copilot container
-    └── claude/                # Claude Code container
-```
-
-## Prerequisites
-
-- Node.js 16+
-- Azure DevOps organization
-- GitHub Copilot or Claude Code API access
-
-## Installation
-
-### Build the Pipeline Task
+## Building
 
 ```bash
-cd src/task/AutocoderV1
+cd src/AutoCoderV1
 npm install
 npm run build
+npm run package:dev   # For dev version
+npm run package:release  # For release version
+npm run publish:dev   # To publish dev version
+npm run publish:release  # To publish release version
 ```
 
-### Package the Extension
+## Future Plans
+- Support for more AI models and providers (local models as well).
+- Support for choosing the AI model.
+- Ability for the agents to respond to code review comments.
+- Ability for the agents to post the pull requests directly to Azure DevOps with their own description.
+- Ability to run the pipeline directly from the work item.
 
-```bash
-cd src/task
-npx tfx extension create --manifest-globs vss-extension.json
-```
-
-## Usage
-
-### Pipeline Task
-
-Add the Autocoder task to your Azure Pipeline:
-
-```yaml
-- task: Autocoder@1
-  inputs:
-    workItemId: '1234'
-    agentType: 'copilot'  # or 'claude'
-    userPrompt: 'Implement the feature as described'
-    createPullRequest: true
-    targetBranch: 'main'
-  env:
-    GITHUB_PAT: $(GITHUB_PAT)
-    CLAUDE_API_KEY: $(CLAUDE_API_KEY)
-```
-
-### Task Inputs
-
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `workItemId` | No | - | Azure Boards work item ID |
-| `userPrompt` | No | - | Custom instructions for the AI |
-| `agentType` | Yes | `copilot` | AI agent: `copilot` or `claude` |
-| `containerImage` | No | (auto) | Custom container image |
-| `systemPrompt` | No | (default) | Override system prompt |
-| `createPullRequest` | No | `true` | Create PR on completion |
-| `targetBranch` | No | `main` | Target branch for PR |
-| `sourceBranchPrefix` | No | `autocoder/` | Source branch prefix |
-| `additionalContext` | No | - | Additional context |
-
-## Environment Variables
-
-| Variable | Agent | Description |
-|----------|-------|-------------|
-| `GITHUB_PAT` | copilot | GitHub Personal Access Token |
-| `CLAUDE_API_KEY` | claude | Anthropic API key |
-| `AZURE_DEVOPS_PAT` | both | Azure DevOps PAT (optional) |
-| `SYSTEM_ACCESSTOKEN` | both | Pipeline OAuth token |
-
-## Container Images
-
-Pre-built container images are available:
-
-- `autocoder/ubuntu-copilot:latest` - GitHub Copilot agent
-- `autocoder/ubuntu-claude:latest` - Claude Code agent
-
-Both containers include:
-- Ubuntu 22.04 LTS
-- Node.js 20.x
-- Python 3
-- .NET SDK 8.0
-- Git
-
-## Development
-
-### Running Tests
-
-```bash
-cd src/task/AutocoderV1
-npm test
-```
-
-### Linting
-
-```bash
-cd src/task/AutocoderV1
-npm run lint
-```
-
-### Building Containers
-
-```bash
-docker build -t autocoder/ubuntu-copilot:latest containers/copilot/
-docker build -t autocoder/ubuntu-claude:latest containers/claude/
-```
-
-## Security Considerations
-
-- All API keys should be stored as secret pipeline variables
-- Generated code should be reviewed before merging
-- Container images run as non-root users
-- Consider adding branch policies for AI-generated PRs
-
-## CI/CD
-
-This project uses GitHub Actions for continuous integration and deployment:
-
-- **Build Extension** (`.github/workflows/build-extension.yml`): Builds, tests, and packages the Azure DevOps task extension
-- **Build Containers** (`.github/workflows/build-containers.yml`): Builds and pushes Docker container images to GitHub Container Registry
-
-Container images are published to:
-- `ghcr.io/<owner>/ado-autocoder/ubuntu-copilot:latest`
-- `ghcr.io/<owner>/ado-autocoder/ubuntu-claude:latest`
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests
-5. Submit a pull request
-
-## Support
-
-For issues and feature requests, please use the GitHub Issues page.
+Feel free to contribute!

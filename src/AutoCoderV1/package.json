@@ -9,8 +9,8 @@
     "sync-version:dev": "npx ts-node ./scripts/sync-version.ts ../../config/dev.json",
     "sync-version:release": "npx ts-node ./scripts/sync-version.ts ../../config/release.json",
     "postbuild": "cp task.json ./dist/ && cp -r node_modules ./dist/ && cp default-system-prompt.md ./dist/ && cp icon.png ./dist/",
-    "package:dev": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/dev.json --rev-version && cd - && npm run sync-version:dev",
-    "package:release": "cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/release.json --rev-version && cd - && npm run sync-version:release",
+    "package:dev": "npm run sync-version:dev --rev-version && cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/dev.json --rev-version",
+    "package:release": "npm run sync-version:release && cd .. && npx tfx-cli extension create --manifest-globs vss-extension.json --overrides-file ../config/release.json",
     "publish:dev": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --overrides-file ../config/dev.json --token $PAT",
     "publish:release": "cd .. && source ../.env && npx tfx-cli extension publish --manifest-globs vss-extension.json --overrides-file ../config/release.json --token $PAT"
   },
