@@ -9,6 +9,7 @@ on:
       - "containers/**"
       - ".github/workflows/build-containers.yml"
       - "config/dev.json"
+      - "config/release.json"
   pull_request:
     branches:
       - main
