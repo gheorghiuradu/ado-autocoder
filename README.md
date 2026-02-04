@@ -1,4 +1,5 @@
-# ![icon](src/images/icon.png) Autocoder - Azure DevOps pipeline task that uses AI coding agents to automatically generate code from work items and create pull requests.
+![icon](src/images/icon.png)
+# Autocoder - Azure DevOps pipeline task that uses AI coding agents to automatically generate code from work items and create pull requests.
 
 For documentation and more details, see the [Marketplace entry](https://marketplace.visualstudio.com/items?itemName=RaduGheorghiu.autocoder-task).
 
