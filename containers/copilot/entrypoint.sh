@@ -26,4 +26,9 @@ passwd -d $USERNAME
 
 PROMPT=$(echo "$1" | base64 -d)
 echo "Starting copilot code generation... this may take a while."
-su $USERNAME -c "cd /src && copilot -p\"$PROMPT\" --yolo > /out/autocoder.log 2>&1"
+if [ -n "$MODEL" ]; then
+    echo "Using model: $MODEL"
+    su $USERNAME -c "cd /src && copilot -p\"$PROMPT\" --model $MODEL --yolo > /out/autocoder.log 2>&1"
+else
+    su $USERNAME -c "cd /src && copilot -p\"$PROMPT\" --yolo > /out/autocoder.log 2>&1"
+fi

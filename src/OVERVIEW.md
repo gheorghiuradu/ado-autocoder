@@ -77,6 +77,8 @@ steps:
     userPrompt: '$(userPrompt)'
     agentType: 'copilot'
     apiKey: '$(GITHUB_PAT)'
+    # Optional: specify a model to use
+    # model: 'gpt-4o'
 
 - task: PublishBuildArtifacts@1
   inputs:
@@ -133,6 +135,8 @@ steps:
     userPrompt: '$(userPrompt)'
     agentType: 'claude'
     apiKey: '$(ANTHROPIC_API_KEY)'
+    # Optional: specify a model to use
+    # model: 'claude-3-5-sonnet-20241022'
 
 - task: PublishBuildArtifacts@1
   inputs:
@@ -163,3 +167,4 @@ And the resulting pull request should look like this:
 | System Prompt Override | Custom system prompt to guide the AI agent's behavior. | No       | "You are a helpful coding assistant." |
 | Create Pull Request | Whether to create a pull request with the generated code changes. Defaults to true. | No       | false    |
 | Target Branch | The branch to create the pull request against. Defaults to main. | No       | development     |
+| Model | The AI model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'). If not specified, the default model for the selected agent will be used. | No       | gpt-4o     |

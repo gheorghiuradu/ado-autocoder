@@ -10,6 +10,7 @@ export interface AgentExecutorOptions {
     workingDirectory: string;
     outDirectory: string;
     apiKey: string;
+    model?: string;
 }
 
 export class AgentExecutor {
@@ -73,6 +74,9 @@ export class AgentExecutor {
             docker.arg('-e').arg(`GITHUB_TOKEN=${options.apiKey}`);
         } else {
             docker.arg('-e').arg(`ANTHROPIC_API_KEY=${options.apiKey}`);
+        }
+        if (options.model) {
+            docker.arg('-e').arg(`MODEL=${options.model}`);
         }
 
         docker.arg(containerImage);

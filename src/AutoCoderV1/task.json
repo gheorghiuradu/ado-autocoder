@@ -79,6 +79,13 @@
             "defaultValue": "main",
             "required": false,
             "helpMarkDown": "Target branch for the pull request"
+        },
+        {
+            "name": "model",
+            "type": "string",
+            "label": "Model",
+            "required": false,
+            "helpMarkDown": "Optional model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'). If not specified, the default model for the selected agent will be used."
         }
     ],
     "execution": {
