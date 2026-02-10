@@ -28,7 +28,7 @@ PROMPT=$(echo "$1" | base64 -d)
 echo "Starting claude code generation... this may take a while."
 if [ -n "$MODEL" ]; then
     echo "Using model: $MODEL"
-    su $USERNAME -c "cd /src && claude --print --dangerously-skip-permissions --model $MODEL \"$PROMPT\" > /out/autocoder.log 2>&1"
+    su $USERNAME -c "cd /src && claude --print --dangerously-skip-permissions --model \"$MODEL\" \"$PROMPT\" > /out/autocoder.log 2>&1"
 else
     su $USERNAME -c "cd /src && claude --print --dangerously-skip-permissions \"$PROMPT\" > /out/autocoder.log 2>&1"
 fi
