@@ -167,4 +167,4 @@ And the resulting pull request should look like this:
 | System Prompt Override | Custom system prompt to guide the AI agent's behavior. | No       | "You are a helpful coding assistant." |
 | Create Pull Request | Whether to create a pull request with the generated code changes. Defaults to true. | No       | false    |
 | Target Branch | The branch to create the pull request against. Defaults to main. | No       | development     |
-| Model | The AI model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'). If not specified, the default model for the selected agent will be used. | No       | gpt-4o     |
+| Model | The AI model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'). If not specified, the default model for the selected agent will be used. | No       | gpt-4o (Copilot), claude-3-5-sonnet-20241022 (Claude)     |
