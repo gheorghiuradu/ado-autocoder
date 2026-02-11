@@ -50,6 +50,11 @@ parameters:
     type: string
     default: empty
 
+  - name: CreatePullRequest
+    displayName: Create Pull Reuqest
+    type: boolean
+    default: true
+
 variables:
   - group: GITHUB
 
@@ -77,8 +82,9 @@ steps:
     userPrompt: '$(userPrompt)'
     agentType: 'copilot'
     apiKey: '$(GITHUB_PAT)'
+    createPullRequest: ${{ parameters.CreatePullRequest }}
     # Optional: specify a model to use
-    # model: 'gpt-4o'
+    # model: 'gpt-5.2-codex'
 
 - task: PublishBuildArtifacts@1
   inputs:
@@ -108,6 +114,11 @@ parameters:
     type: string
     default: empty
 
+  - name: CreatePullRequest
+    displayName: Create Pull Reuqest
+    type: boolean
+    default: true
+
 variables:
   - group: ANTHROPIC
 
@@ -135,6 +146,7 @@ steps:
     userPrompt: '$(userPrompt)'
     agentType: 'claude'
     apiKey: '$(ANTHROPIC_API_KEY)'
+    createPullRequest: ${{ parameters.CreatePullRequest }}
     # Optional: specify a model to use
     # model: 'claude-3-5-sonnet-20241022'
 
@@ -167,4 +179,4 @@ And the resulting pull request should look like this:
 | System Prompt Override | Custom system prompt to guide the AI agent's behavior. | No       | "You are a helpful coding assistant." |
 | Create Pull Request | Whether to create a pull request with the generated code changes. Defaults to true. | No       | false    |
 | Target Branch | The branch to create the pull request against. Defaults to main. | No       | development     |
-| Model | The AI model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'). If not specified, the default model for the selected agent will be used. | No       | gpt-4o (Copilot), claude-3-5-sonnet-20241022 (Claude)     |
+| Model | The AI model to use (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022'). If not specified, the default model for the selected agent will be used. | No       | - For copilot: claude-sonnet-4.5, claude-haiku-4.5, claude-opus-4.6, claude-opus-4.6-fast, claude-opus-4.5, claude-sonnet-4, gemini-3-pro-preview, gpt-5.2-codex, gpt-5.2, gpt-5.1-codex-max, gpt-5.1-codex, gpt-5.1, gpt-5, gpt-5.1-codex-mini, gpt-5-mini, gpt-4.1 - For claude code: Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g.'claude-sonnet-4-5-20250929').     |
