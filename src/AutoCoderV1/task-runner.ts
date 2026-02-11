@@ -15,6 +15,7 @@ export interface TaskInputs {
     systemPrompt?: string;
     createPullRequest: boolean;
     targetBranch: string;
+    model?: string;
 }
 
 export class TaskRunner {
@@ -74,6 +75,7 @@ export class TaskRunner {
             workingDirectory: tl.getVariable('Build.SourcesDirectory') || process.cwd(),
             outDirectory: tl.getVariable('Build.ArtifactStagingDirectory') || `${process.cwd()}/out`,
             apiKey: inputs.apiKey,
+            model: inputs.model,
         });
 
         // Check if there are any changes to commit
@@ -128,6 +130,7 @@ export class TaskRunner {
             systemPrompt: tl.getInput('systemPrompt', false),
             createPullRequest: tl.getBoolInput('createPullRequest', false) ?? true,
             targetBranch: tl.getInput('targetBranch', false) || 'main',
+            model: tl.getInput('model', false),
         };
     }
 
