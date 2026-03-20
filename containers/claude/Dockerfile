@@ -32,8 +32,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /tmp/*
 
 WORKDIR /src
-COPY entrypoint.sh /entrypoint.sh
+COPY claude/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+COPY ado-pr-comment.sh /usr/local/bin/ado-pr-comment
+RUN chmod +x /usr/local/bin/ado-pr-comment
 RUN mkdir /out
 RUN chmod 777 /out
 

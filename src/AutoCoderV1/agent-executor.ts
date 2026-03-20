@@ -11,6 +11,7 @@ export interface AgentExecutorOptions {
     outDirectory: string;
     apiKey: string;
     model?: string;
+    extraEnvVars?: Record<string, string>;
 }
 
 export class AgentExecutor {
@@ -77,6 +78,11 @@ export class AgentExecutor {
         }
         if (options.model) {
             docker.arg('-e').arg(`MODEL=${options.model}`);
+        }
+        if (options.extraEnvVars) {
+            for (const [key, value] of Object.entries(options.extraEnvVars)) {
+                docker.arg('-e').arg(`${key}=${value}`);
+            }
         }
 
         docker.arg(containerImage);
