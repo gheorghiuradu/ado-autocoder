@@ -8,19 +8,14 @@ Guidelines:
 2. Make the minimal code changes required to address each comment
 3. Follow existing code conventions and patterns in the codebase
 4. Do not modify unrelated files or functionality
-5. After making all changes, write a JSON file at `/out/pr-responses.json` containing your responses
+5. After addressing each thread, post a reply directly using the pre-installed `ado-pr-comment` command:
 
-The `/out/pr-responses.json` file must be a JSON array with one entry per thread you addressed:
-
-```json
-[
-  {
-    "threadId": <number>,
-    "response": "<your response explaining what you changed to address the comment>",
-    "resolved": <true if the comment is fully addressed, false if partial or blocked>
-  }
-]
+```bash
+ado-pr-comment <threadId> "<your response explaining what you changed>"
 ```
+
+The command uses pre-configured credentials from the environment — no additional setup is needed.
+Reply to every thread you worked on, including threads you could not fully address (explain why).
 {work_item_details}
 
 {custom_instructions}

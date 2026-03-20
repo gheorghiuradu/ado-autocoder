@@ -78,7 +78,7 @@ jobs:
       - name: Build and push Copilot image
         uses: docker/build-push-action@v5
         with:
-          context: containers/copilot
+          context: containers
           file: containers/copilot/Dockerfile
           push: true
           tags: ${{ steps.tags.outputs.tags }}
@@ -142,7 +142,7 @@ jobs:
       - name: Build and push Claude image
         uses: docker/build-push-action@v5
         with:
-          context: containers/claude
+          context: containers
           file: containers/claude/Dockerfile
           push: true
           tags: ${{ steps.tags.outputs.tags }}

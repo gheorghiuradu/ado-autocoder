@@ -36,6 +36,8 @@ RUN apt update && apt install -y \
 WORKDIR /src
 RUN mkdir /out
 RUN chmod 777 /out
-COPY entrypoint.sh /entrypoint.sh
+COPY copilot/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+COPY ado-pr-comment.sh /usr/local/bin/ado-pr-comment
+RUN chmod +x /usr/local/bin/ado-pr-comment
 ENTRYPOINT ["/entrypoint.sh"]

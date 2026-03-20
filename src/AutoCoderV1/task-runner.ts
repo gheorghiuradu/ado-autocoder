@@ -179,6 +179,13 @@ export class TaskRunner {
             outDirectory: outDirectory,
             apiKey: inputs.apiKey,
             model: inputs.model,
+            extraEnvVars: {
+                ADO_ORG_URL: tl.getVariable('System.TeamFoundationCollectionUri') || '',
+                ADO_PROJECT: tl.getVariable('System.TeamProject') || '',
+                ADO_REPO_ID: tl.getVariable('Build.Repository.ID') || '',
+                ADO_PR_ID: pullRequestId,
+                AZURE_DEVOPS_TOKEN: tl.getVariable('System.AccessToken') || tl.getVariable('AZURE_DEVOPS_PAT') || '',
+            },
         });
 
         // Commit and push changes if any
@@ -193,45 +200,11 @@ export class TaskRunner {
 
         const headAfter = this.gitOperations.getHeadCommit();
         const madeChanges = headBefore !== headAfter;
-
-        // Read agent-generated responses and post them to the PR threads
-        const responsesFile = path.join(outDirectory, 'pr-responses.json');
-        if (fs.existsSync(responsesFile)) {
-            await this.postPrResponses(pullRequestId, responsesFile);
-        } else if (madeChanges) {
-            // Fallback: post a generic reply to all threads
-            for (const thread of threads) {
-                await this.pullRequestService.replyToThread(
-                    pullRequestId,
-                    thread.threadId,
-                    '🤖 **Autocoder**: I have addressed this comment and pushed the relevant changes.'
-                );
-            }
-        } else {
-            console.log('No changes made and no responses file found');
+        if (!madeChanges) {
+            console.log('No code changes were made by the AI agent');
         }
 
-        tl.setResult(tl.TaskResult.Succeeded, `PR review mode completed. Addressed ${threads.length} comment thread(s).`);
-    }
-
-    private async postPrResponses(pullRequestId: string, responsesFile: string): Promise<void> {
-        let responses: Array<{ threadId: number; response: string; resolved?: boolean }>;
-        try {
-            responses = JSON.parse(fs.readFileSync(responsesFile, 'utf-8'));
-        } catch (error) {
-            tl.warning(`Failed to parse pr-responses.json: ${error instanceof Error ? error.message : error}`);
-            return;
-        }
-
-        for (const item of responses) {
-            if (!item.threadId || !item.response) {
-                continue;
-            }
-            await this.pullRequestService.replyToThread(pullRequestId, item.threadId, `🤖 **Autocoder**: ${item.response}`);
-            if (item.resolved) {
-                await this.pullRequestService.resolveThread(pullRequestId, item.threadId);
-            }
-        }
+        tl.setResult(tl.TaskResult.Succeeded, `PR respond mode completed. Addressed ${threads.length} comment thread(s).`);
     }
 
     private async preparePrReviewSystemPrompt(
