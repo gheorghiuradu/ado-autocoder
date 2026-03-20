@@ -2,11 +2,13 @@ import * as tl from 'azure-pipelines-task-lib/task';
 import { WorkItemDetails, WorkItemService } from './work-item';
 import { AgentExecutor } from './agent-executor';
 import { GitOperations } from './git-operations';
-import { PullRequestService } from './pull-request';
+import { PullRequestCommentThread, PullRequestService } from './pull-request';
 import * as fs from 'fs';
 import * as path from 'path';
 
 export interface TaskInputs {
+    operationMode: 'work' | 'prRespond';
+    pullRequestId?: string;
     workItemId?: string;
     userPrompt?: string;
     agentType: 'copilot' | 'claude';
@@ -38,7 +40,17 @@ export class TaskRunner {
         const inputs = this.getInputs();
         this.validateInputs(inputs);
 
+        console.log(`Operation mode: ${inputs.operationMode}`);
         console.log(`Agent type: ${inputs.agentType}`);
+
+        if (inputs.operationMode === 'prRespond') {
+            await this.runPrRespondMode(inputs);
+        } else {
+            await this.runWorkMode(inputs);
+        }
+    }
+
+    private async runWorkMode(inputs: TaskInputs): Promise<void> {
         console.log(`Create PR: ${inputs.createPullRequest}`);
         console.log(`Target branch: ${inputs.targetBranch}`);
 
@@ -120,8 +132,155 @@ export class TaskRunner {
         tl.setResult(tl.TaskResult.Succeeded, 'Autocoder task completed successfully');
     }
 
+    private async runPrRespondMode(inputs: TaskInputs): Promise<void> {
+        const pullRequestId = inputs.pullRequestId!;
+        console.log(`Addressing comments on pull request #${pullRequestId}`);
+
+        // Fetch PR info and active comment threads
+        const prInfo = await this.pullRequestService.getPullRequestInfo(pullRequestId);
+        console.log(`PR: "${prInfo.title}" (${prInfo.sourceBranch} → ${prInfo.targetBranch})`);
+
+        const threads = await this.pullRequestService.getActiveCommentThreads(pullRequestId);
+        if (threads.length === 0) {
+            console.log('No active comment threads found. Exiting.');
+            tl.setResult(tl.TaskResult.Succeeded, 'No active comments to address');
+            return;
+        }
+        console.log(`Found ${threads.length} active comment thread(s)`);
+
+        const workItemDetails = prInfo.workItemId ? await this.workItemService.getWorkItemDetails(prInfo.workItemId) : undefined;
+        const customInstructions = inputs.userPrompt || '';
+
+        // Prepare the prompt with PR context and comment threads
+        const systemPrompt = await this.preparePrReviewSystemPrompt(
+            inputs.systemPrompt,
+            prInfo.title,
+            prInfo.description,
+            customInstructions,
+            workItemDetails,
+            threads,
+        );
+
+        // Checkout the PR source branch
+        const branch = prInfo.sourceBranch;
+        console.log(`Checking out PR source branch: ${branch}`);
+        await this.gitOperations.fetchBranch(branch);
+        await this.gitOperations.checkoutBranch(branch);
+        const headBefore = this.gitOperations.getHeadCommit();
+
+        // Execute the AI agent
+        const outDirectory = tl.getVariable('Build.ArtifactStagingDirectory') || `${process.cwd()}/out`;
+        console.log('Executing AI agent to address PR comments');
+        await this.agentExecutor.execute({
+            agentType: inputs.agentType,
+            containerImage: inputs.containerImage,
+            systemPrompt: systemPrompt,
+            workingDirectory: tl.getVariable('Build.SourcesDirectory') || process.cwd(),
+            outDirectory: outDirectory,
+            apiKey: inputs.apiKey,
+            model: inputs.model,
+        });
+
+        // Commit and push changes if any
+        const hasChanges = await this.gitOperations.hasChanges();
+        if (hasChanges) {
+            console.log('Committing changes');
+            await this.gitOperations.commitChanges(`[Autocoder] Address PR #${pullRequestId} comments`);
+            console.log(`Syncing changes for branch ${branch}`);
+            await this.gitOperations.pullBranch(branch);
+            await this.gitOperations.pushBranch(branch);
+        }
+
+        const headAfter = this.gitOperations.getHeadCommit();
+        const madeChanges = headBefore !== headAfter;
+
+        // Read agent-generated responses and post them to the PR threads
+        const responsesFile = path.join(outDirectory, 'pr-responses.json');
+        if (fs.existsSync(responsesFile)) {
+            await this.postPrResponses(pullRequestId, responsesFile);
+        } else if (madeChanges) {
+            // Fallback: post a generic reply to all threads
+            for (const thread of threads) {
+                await this.pullRequestService.replyToThread(
+                    pullRequestId,
+                    thread.threadId,
+                    '🤖 **Autocoder**: I have addressed this comment and pushed the relevant changes.'
+                );
+            }
+        } else {
+            console.log('No changes made and no responses file found');
+        }
+
+        tl.setResult(tl.TaskResult.Succeeded, `PR review mode completed. Addressed ${threads.length} comment thread(s).`);
+    }
+
+    private async postPrResponses(pullRequestId: string, responsesFile: string): Promise<void> {
+        let responses: Array<{ threadId: number; response: string; resolved?: boolean }>;
+        try {
+            responses = JSON.parse(fs.readFileSync(responsesFile, 'utf-8'));
+        } catch (error) {
+            tl.warning(`Failed to parse pr-responses.json: ${error instanceof Error ? error.message : error}`);
+            return;
+        }
+
+        for (const item of responses) {
+            if (!item.threadId || !item.response) {
+                continue;
+            }
+            await this.pullRequestService.replyToThread(pullRequestId, item.threadId, `🤖 **Autocoder**: ${item.response}`);
+            if (item.resolved) {
+                await this.pullRequestService.resolveThread(pullRequestId, item.threadId);
+            }
+        }
+    }
+
+    private async preparePrReviewSystemPrompt(
+        customSystemPrompt: string | undefined,
+        prTitle: string,
+        prDescription: string | undefined,
+        customInstructions: string,
+        workItemDetails: WorkItemDetails | undefined,
+        threads: PullRequestCommentThread[],
+    ): Promise<string> {
+        let systemPrompt: string;
+
+        if (customSystemPrompt) {
+            systemPrompt = customSystemPrompt;
+        } else {
+            const promptPath = path.join(__dirname, 'pr-respond-system-prompt.md');
+            systemPrompt = fs.readFileSync(promptPath, 'utf-8');
+        }
+
+        const prContext = `## Pull Request\n**Title:** ${prTitle}\n**Description:** ${prDescription || ''}`;
+
+        const threadsText = threads.map(t => {
+            const fileInfo = t.filePath ? `\n**File:** ${t.filePath}` : '';
+            const comments = t.comments.map(c => `  - **${c.author}**: ${c.content}`).join('\n');
+            return `### Thread #${t.threadId}${fileInfo}\n${comments}`;
+        }).join('\n\n');
+
+        const prCommentThreads = `## Active Comment Threads\n\n${threadsText}`;
+
+        systemPrompt = systemPrompt.replace('{pr_context}', prContext);
+        systemPrompt = systemPrompt.replace('{pr_comment_threads}', prCommentThreads);
+        if (workItemDetails) {
+            systemPrompt = systemPrompt.replace('{work_item_details}', `## Work Item Context\n **Title:** ${workItemDetails.title}\n **Description:** ${workItemDetails.details}`);
+        } else {
+            systemPrompt = systemPrompt.replace('{work_item_details}', '');
+        }
+        if (customInstructions) {
+            systemPrompt = systemPrompt.replace('{custom_instructions}', `## Additional Instructions\n${customInstructions}`);
+        } else {
+            systemPrompt = systemPrompt.replace('{custom_instructions}', '');
+        }
+
+        return systemPrompt;
+    }
+
     private getInputs(): TaskInputs {
         return {
+            operationMode: (tl.getInput('operationMode', true) || 'work') as 'work' | 'prRespond',
+            pullRequestId: tl.getInput('pullRequestId', false),
             workItemId: tl.getInput('workItemId', false),
             userPrompt: tl.getInput('userPrompt', false),
             agentType: tl.getInput('agentType', true) as 'copilot' | 'claude',
@@ -135,8 +294,16 @@ export class TaskRunner {
     }
 
     private validateInputs(inputs: TaskInputs): void {
-        if (!inputs.workItemId && !inputs.userPrompt) {
-            throw new Error('Either workItemId or userPrompt must be provided');
+        if (!['work', 'prRespond'].includes(inputs.operationMode)) {
+            throw new Error(`Invalid operation mode: ${inputs.operationMode}. Must be 'work' or 'prRespond'`);
+        }
+
+        if (inputs.operationMode === 'work' && !inputs.workItemId && !inputs.userPrompt) {
+            throw new Error('Either workItemId or userPrompt must be provided in work mode');
+        }
+
+        if (inputs.operationMode === 'prRespond' && !inputs.pullRequestId) {
+            throw new Error('pullRequestId must be provided in prRespond mode');
         }
 
         if (!['copilot', 'claude'].includes(inputs.agentType)) {

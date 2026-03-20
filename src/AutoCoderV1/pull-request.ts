@@ -1,7 +1,27 @@
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as azdev from 'azure-devops-node-api';
 import { IGitApi } from 'azure-devops-node-api/GitApi';
-import { GitPullRequest } from 'azure-devops-node-api/interfaces/GitInterfaces';
+import { GitPullRequest, GitPullRequestCommentThread } from 'azure-devops-node-api/interfaces/GitInterfaces';
+
+export interface PullRequestCommentThread {
+    threadId: number;
+    status: string;
+    filePath?: string;
+    comments: Array<{
+        commentId: number;
+        content: string;
+        author: string;
+    }>;
+}
+
+export interface PullRequestInfo {
+    pullRequestId: number;
+    sourceBranch: string;
+    targetBranch: string;
+    title: string;
+    description?: string;
+    workItemId?: string;
+}
 
 export interface PullRequestOptions {
     sourceBranch: string;
@@ -84,15 +104,128 @@ export class PullRequestService {
             const repoName = tl.getVariable('Build.Repository.Name');
 
             const prUrl = `${orgUrl}${projectName}/_git/${repoName}/pullrequest/${createdPR.pullRequestId}`;
-            
+
             console.log(`Pull request #${createdPR.pullRequestId} created successfully`);
-            
+
             return prUrl;
         } catch (error) {
             if (error instanceof Error) {
                 throw new Error(`Failed to create pull request: ${error.message}`);
             }
             throw error;
+        }
+    }
+
+    async getPullRequestInfo(pullRequestId: string): Promise<PullRequestInfo> {
+        const connection = await this.getConnection();
+        const gitApi = await connection.getGitApi();
+
+        const projectId = tl.getVariable('System.TeamProjectId');
+        const repositoryId = tl.getVariable('Build.Repository.ID');
+
+        if (!projectId || !repositoryId) {
+            throw new Error('Unable to determine project or repository ID');
+        }
+
+        const pr = await gitApi.getPullRequest(repositoryId, parseInt(pullRequestId, 10), projectId);
+        if (!pr || !pr.pullRequestId) {
+            throw new Error(`Pull request ${pullRequestId} not found`);
+        }
+
+        return {
+            pullRequestId: pr.pullRequestId,
+            sourceBranch: (pr.sourceRefName || '').replace('refs/heads/', ''),
+            targetBranch: (pr.targetRefName || '').replace('refs/heads/', ''),
+            title: pr.title || '',
+            description: pr.description,
+            workItemId: pr.workItemRefs && pr.workItemRefs.length > 0 ? pr.workItemRefs[0].id : undefined
+        };
+    }
+
+    async getActiveCommentThreads(pullRequestId: string): Promise<PullRequestCommentThread[]> {
+        const connection = await this.getConnection();
+        const gitApi = await connection.getGitApi();
+
+        const projectId = tl.getVariable('System.TeamProjectId');
+        const repositoryId = tl.getVariable('Build.Repository.ID');
+
+        if (!projectId || !repositoryId) {
+            throw new Error('Unable to determine project or repository ID');
+        }
+
+        const threads = await gitApi.getThreads(repositoryId, parseInt(pullRequestId, 10), projectId);
+        if (!threads) {
+            return [];
+        }
+
+        return threads
+            .filter(t => t.status === 1 /* Active */ && !t.isDeleted)
+            .map(t => ({
+                threadId: t.id!,
+                status: 'active',
+                filePath: t.threadContext?.filePath,
+                comments: (t.comments || [])
+                    .filter(c => !c.isDeleted && c.commentType !== 2 /* not system */)
+                    .map(c => ({
+                        commentId: c.id!,
+                        content: c.content || '',
+                        author: c.author?.displayName || 'Unknown'
+                    }))
+            }))
+            .filter(t => t.comments.length > 0);
+    }
+
+    async replyToThread(pullRequestId: string, threadId: number, reply: string): Promise<void> {
+        const connection = await this.getConnection();
+        const gitApi = await connection.getGitApi();
+
+        const projectId = tl.getVariable('System.TeamProjectId');
+        const repositoryId = tl.getVariable('Build.Repository.ID');
+
+        if (!projectId || !repositoryId) {
+            throw new Error('Unable to determine project or repository ID');
+        }
+
+        try {
+            await gitApi.createComment(
+                { content: reply },
+                repositoryId,
+                parseInt(pullRequestId, 10),
+                threadId,
+                projectId
+            );
+            console.log(`Replied to thread #${threadId}`);
+        } catch (error) {
+            if (error instanceof Error) {
+                tl.warning(`Failed to reply to thread #${threadId}: ${error.message}`);
+            }
+        }
+    }
+
+    async resolveThread(pullRequestId: string, threadId: number): Promise<void> {
+        const connection = await this.getConnection();
+        const gitApi = await connection.getGitApi();
+
+        const projectId = tl.getVariable('System.TeamProjectId');
+        const repositoryId = tl.getVariable('Build.Repository.ID');
+
+        if (!projectId || !repositoryId) {
+            throw new Error('Unable to determine project or repository ID');
+        }
+
+        try {
+            await gitApi.updateThread(
+                { status: 2 /* Fixed */ },
+                repositoryId,
+                parseInt(pullRequestId, 10),
+                threadId,
+                projectId
+            );
+            console.log(`Resolved thread #${threadId}`);
+        } catch (error) {
+            if (error instanceof Error) {
+                tl.warning(`Failed to resolve thread #${threadId}: ${error.message}`);
+            }
         }
     }
 

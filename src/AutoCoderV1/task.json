@@ -18,10 +18,31 @@
     "instanceNameFormat": "Autocoder: $(agentType)",
     "inputs": [
         {
+            "name": "operationMode",
+            "type": "pickList",
+            "label": "Operation Mode",
+            "required": true,
+            "defaultValue": "work",
+            "options": {
+                "work": "Work Mode (implement from work item or prompt)",
+                "prRespond": "PR Respond Mode (address pull request comments)"
+            },
+            "helpMarkDown": "Select the operation mode: 'work' to implement from a work item or prompt, 'prRespond' to address comments on an existing pull request"
+        },
+        {
+            "name": "pullRequestId",
+            "type": "string",
+            "label": "Pull Request ID",
+            "required": false,
+            "visibleRule": "operationMode = prRespond",
+            "helpMarkDown": "The ID of the pull request whose comments should be addressed (required when operationMode is 'prRespond')"
+        },
+        {
             "name": "workItemId",
             "type": "string",
             "label": "Work Item ID",
             "required": false,
+            "visibleRule": "operationMode = work",
             "helpMarkDown": "Azure Boards work item ID to use as context"
         },
         {
